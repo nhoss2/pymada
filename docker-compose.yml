@@ -1,0 +1,37 @@
+version: '3'
+services:
+  master:
+    image: "nhoss2/pymada_master"
+    ports:
+      - "30200:8000"
+    command: make setup-test-server
+    environment:
+      PYTHONUNBUFFERED: 1
+      LOG_LEVEL: "DEBUG"
+  
+  agent1:
+    image: "nhoss2/pymada-node-puppeteer"
+    command: "make run-server"
+    depends_on:
+      - master
+    ports:
+      - "5001:5001"
+    environment:
+      AGENT_ADDR: "agent1"
+      MASTER_URL: "http://master:8000"
+      AGENT_PORT: "5001"
+      PYTHONUNBUFFERED: 1
+      LOG_LEVEL: "DEBUG"
+  
+#  agent2:
+#    image: "nhoss2/pymada-node-puppeteer"
+#    command: "make run-server"
+#    depends_on:
+#      - master
+#    ports:
+#      - "5002:5001"
+#    environment:
+#      AGENT_ADDR: "agent2"
+#      MASTER_URL: "http://master:8000"
+#      AGENT_PORT: "5001"
+#      PYTHONUNBUFFERED: 1

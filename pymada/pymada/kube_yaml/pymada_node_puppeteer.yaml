@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pymada-node-puppeteer-deployment
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: pymada-node-puppeteer
+  template:
+    metadata:
+      labels:
+        app: pymada-node-puppeteer
+    spec:
+      containers:
+      - name: pymada-node-puppeteer
+        image: docker.io/nhoss2/pymada-node-puppeteer
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5001
+        env:
+          - name: AGENT_ADDR
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: MASTER_URL
+            value: "http://pymadamaster:8000"
+          - name: AGENT_PORT
+            value: "5001"

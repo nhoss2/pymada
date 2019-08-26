@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pymada-master-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pymada-master
+  template:
+    metadata:
+      labels:
+        app: pymada-master
+    spec:
+      containers:
+      - name: pymada-master-container
+        image: docker.io/nhoss2/pymada_master
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+      nodeSelector:
+        pymada-role: master
