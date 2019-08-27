@@ -11,7 +11,7 @@ runner_configs = {
         'executable': 'python3',
         'dependency_manager': {
             'file_name': 'requirements.txt',
-            'command': 'pip3 install -r requirements.txt'
+            'command': 'python3 -m pip install -r requirements.txt'
         }
     },
     'node_puppeteer': {

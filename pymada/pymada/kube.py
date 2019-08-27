@@ -25,51 +25,39 @@ def run_master_server(config_path=None, num_retries=5):
         else:
             raise e
 
-def autoretry_run(func, num_tries=0, *args, **kargs):
-    try:
-        pass
-    except utils.FailToCreateError as e:
-        if num_tries > 0:
-            pass
-        else:
-            raise e
 
-
-def create_deployment_object(config_path=None):
-    if config_path is None:
-        base_dir = os.getcwd()
-        config_path = os.path.join(base_dir, 'k3s_config.yaml')
-    kube_config.load_kube_config(config_file=config_path)
+def run_agent_deployment(image, replicas, deploy_name='pymada-agent',
+                             template_label={'app': 'pymada-agent'},
+                             agent_port='5001', container_name='pymada-signle-agent',
+                             config_path=None):
 
     container = client.V1Container(
-        name="pymada-agent-container",
-        image="docker.io/nhoss2/pymada_master",
-        ports=[client.V1ContainerPort(container_port=80)])
+        name=container_name,
+        image=image,
+        ports=[client.V1ContainerPort(container_port=5001)],
+        env=[client.V1EnvVar("MASTER_URL", "http://pymadamaster:8000"),
+             client.V1EnvVar("AGENT_PORT", agent_port),
+             client.V1EnvVar("AGENT_ADDR", value_from=client.V1EnvVarSource(
+                 field_ref=client.V1ObjectFieldSelector(field_path="status.podIP")))])
 
     template = client.V1PodTemplateSpec(
-        metadata=client.V1ObjectMeta(labels={"app": "pymada_agent"}),
+        metadata=client.V1ObjectMeta(labels=template_label),
         spec=client.V1PodSpec(containers=[container]))
 
     spec = client.ExtensionsV1beta1DeploymentSpec(
-        replicas=1,
+        replicas=replicas,
         template=template)
 
     deployment = client.ExtensionsV1beta1Deployment(
         api_version="extensions/v1beta1",
         kind="Deployment",
-        metadata=client.V1ObjectMeta(name='testo'),
+        metadata=client.V1ObjectMeta(name=deploy_name),
         spec=spec)
 
-    return deployment
-
-if __name__ == '__main__':
-    run_master_server()
-
-
-    '''
-    deployment = create_deployment_object()
-
+    if config_path is None:
+        base_dir = os.getcwd()
+        config_path = os.path.join(base_dir, 'k3s_config.yaml')
+    kube_config.load_kube_config(config_file=config_path)
     extensions_v1beta1 = client.ExtensionsV1beta1Api()
-    response = extensions_v1beta1.create_namespaced_deployment(body=deployment, namespace="default")
-    print(response.status)
-    '''
+    extensions_v1beta1.create_namespaced_deployment(body=deployment, namespace="default")
+

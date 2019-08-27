@@ -5,7 +5,7 @@ import fire
 import requests
 
 from .provision import ProvisionGoogle
-from .kube import run_master_server
+from .kube import run_master_server, run_agent_deployment
 
 '''
 things to do:
@@ -39,6 +39,8 @@ things to do:
         - add url (adds single url from command line)
 
         - view logs (of single pod through kubernetes api)
+
+        - check status (see how many pods running, num urls completed/left)
 
 '''
 
@@ -113,11 +115,7 @@ def add_url(url, json_metadata=None, master_url=None):
 
 
 class CliClient(object):
-
-    def __init__(self):
-        self.dir = os.getcwd()
-    
-    def launch(self, agents=2, provider='gc', preempt_agents=True, preempt_master=True):
+    def launch(self, agents, provider='gc', preempt_agents=True, preempt_master=True):
 
         if type(agents) is not int:
             print('error: agents argument needs to be a number. given input:', agents)
@@ -130,11 +128,19 @@ class CliClient(object):
         if config == "kube conf doesnt exist":
             raise Exception("There has been an error with installing kubernetes")
 
-        config_path = os.path.join(self.dir, 'k3s_config.yaml')
+        config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
+        print('waiting for k3s installation')
         gc.write_modify_k3s_config(config, write_path=config_path)
+        print('deploying master server on kubernetes')
         run_master_server(config_path)
+        print('done!')
     
-    def run_node_puppeteer(self, runner, num_replicas=1, packagejson=None, master_url=None):
+    def run_node_puppeteer(self, runner, replicas=1, packagejson=None, master_url=None,
+                           no_deploy=False):
+        if type(replicas) is not int:
+            print('error: replicas argument needs to be a number. given input:', replicas)
+            return
+
         full_dep_path = None
         if packagejson is not None:
             full_dep_path = os.path.expanduser(packagejson)
@@ -143,11 +149,15 @@ class CliClient(object):
                 return
         add_runner(runner, 'node_puppeteer', full_dep_path, master_url=master_url)
 
+        if not no_deploy:
+            run_agent_deployment('nhoss2/pymada-node-puppeteer', replicas)
+
     def add_url_task(self, url, json_metadata=None, master_url=None):
         if type(json_metadata) not in [type(None), dict]:
             print('error: json_metadata is not in json format.')
 
         add_url(url, json_metadata, master_url=master_url)
+
 
 def main():
     fire.Fire(CliClient)

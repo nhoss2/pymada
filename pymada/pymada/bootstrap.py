@@ -48,8 +48,6 @@ class Server(BaseHTTPRequestHandler):
         else:
             self.wfile.write(bytes('', 'utf-8'))
 
-        #httpd.shutdown()
-
 if __name__ == '__main__':
     httpd = HTTPServer(('0.0.0.0', 30200), Server)
 

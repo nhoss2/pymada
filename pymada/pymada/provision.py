@@ -223,7 +223,7 @@ class ProvisionGoogle(object):
         with open(settings_file, 'w') as jsonfile:
             json.dump(self.settings, jsonfile)
 
-    def load_settings(self, settings_file):
+    def load_settings(self, settings_file=None):
         if settings_file is None:
             file_dir = os.getcwd()
             settings_file = os.path.join(file_dir, 'provision_data.json')
@@ -240,12 +240,13 @@ class ProvisionGoogle(object):
              self.ccg.bootstrap_token + '/' + self.settings['master_node_ip']
         
         try:
-            r = requests.get(req_url, timeout=180)
+            # long time out due to kubernetes install happening on same process
+            # on the server as serving the http response
+            r = requests.get(req_url, timeout=300)
             response = r.text
             return response
         except requests.exceptions.ConnectionError:
             time.sleep(8)
-            #print('retrying', req_url)
             if num_tries > 30:
                 print('unable to contact k3s master server')
                 return
