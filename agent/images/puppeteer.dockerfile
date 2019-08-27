@@ -24,4 +24,4 @@ ENV AGENT_PORT 5001
 ENV AGENT_ADDR "127.0.0.1"
 ENV MASTER_URL "http://127.0.0.1:8000"
 
-CMD ["sh", "-c", "gunicorn \"agent_server:gen_flask_app()\" -b $AGENT_ADDR:$AGENT_PORT"]
+CMD ["sh", "-c", "gunicorn \"agent_server:gen_flask_app()\" -b 0.0.0.0:$AGENT_PORT"]

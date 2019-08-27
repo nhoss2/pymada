@@ -11,7 +11,7 @@ services:
   
   agent1:
     image: "nhoss2/pymada-node-puppeteer"
-    command: "make run-server"
+    command: 'gunicorn "wsgi:app" -b 0.0.0.0:5001'
     depends_on:
       - master
     ports:

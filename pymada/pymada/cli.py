@@ -26,6 +26,7 @@ things to do:
             - instance types (optional?)
             - instance location (optional)
             - instance preemptible (optional)
+            - docker image names and versions (optional)
 
     - commands:
         - launch (start instances, start k3s, start master server)
@@ -124,14 +125,14 @@ class CliClient(object):
         gc = ProvisionGoogle()
         gc.create_master(preemptible=preempt_master)
         gc.create_agent(agents, preemptible=preempt_agents)
+        print('waiting for kubernetes installation on master')
         config = gc.get_k3s_config()
         if config == "kube conf doesnt exist":
             raise Exception("There has been an error with installing kubernetes")
 
         config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
-        print('waiting for k3s installation')
         gc.write_modify_k3s_config(config, write_path=config_path)
-        print('deploying master server on kubernetes')
+        print('deploying api server on kubernetes')
         run_master_server(config_path)
         print('done!')
     

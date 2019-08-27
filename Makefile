@@ -2,7 +2,7 @@ compose-up:
 	docker-compose up --force-recreate
 
 master:
-	docker build . -t nhoss2/pymada_master
+	cd api_server; docker build . -t nhoss2/pymada_master
 
 agent:
 	cd agent; docker build . -t nhoss2/pymada_agent
