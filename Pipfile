@@ -9,16 +9,16 @@ autopep8 = "*"
 
 [packages]
 apache-libcloud = "*"
-paramiko = "*"
 django = "*"
 djangorestframework = "*"
 requests = "*"
 gunicorn = "*"
 pylint-django = "*"
 flask = "*"
-pycrypto = "*"
 fire = "*"
 kubernetes = "*"
+cryptography = "*"
+pymada = {editable = true,path = "./pymada"}
 
 [requires]
 python_version = "3.6"
