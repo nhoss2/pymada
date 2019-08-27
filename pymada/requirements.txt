@@ -25,11 +25,9 @@ oauthlib==3.1.0
 pyasn1==0.4.6
 pyasn1-modules==0.2.6
 pycparser==2.19
-pycrypto==2.6.1
 pylint==2.3.1
 pylint-django==2.0.11
 pylint-plugin-utils==0.5
--e git+git@github.com:nhoss2/pymada.git@dd5a326399f88278ee654864e46a94075af667e9#egg=pymada&subdirectory=pymada
 python-dateutil==2.8.0
 pytz==2019.2
 PyYAML==5.1.2
