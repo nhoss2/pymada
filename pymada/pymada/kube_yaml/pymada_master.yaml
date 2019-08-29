@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: pymada-master-container
-        image: docker.io/nhoss2/pymada_master
+        image: docker.io/nhoss2/pymada-master
         imagePullPolicy: Always
         ports:
         - containerPort: 8000

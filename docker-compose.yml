@@ -1,7 +1,7 @@
 version: '3'
 services:
   master:
-    image: "nhoss2/pymada_master"
+    image: "nhoss2/pymada-master"
     ports:
       - "30200:8000"
     command: make setup-test-server
@@ -23,15 +23,16 @@ services:
       PYTHONUNBUFFERED: 1
       LOG_LEVEL: "DEBUG"
   
-#  agent2:
-#    image: "nhoss2/pymada-node-puppeteer"
-#    command: "make run-server"
-#    depends_on:
-#      - master
-#    ports:
-#      - "5002:5001"
-#    environment:
-#      AGENT_ADDR: "agent2"
-#      MASTER_URL: "http://master:8000"
-#      AGENT_PORT: "5001"
-#      PYTHONUNBUFFERED: 1
+  agent2:
+    image: "nhoss2/pymada-node-puppeteer"
+    command: 'gunicorn "wsgi:app" -b 0.0.0.0:5001'
+    depends_on:
+      - master
+    ports:
+      - "5002:5001"
+    environment:
+      AGENT_ADDR: "agent2"
+      MASTER_URL: "http://master:8000"
+      AGENT_PORT: "5001"
+      PYTHONUNBUFFERED: 1
+      LOG_LEVEL: "DEBUG"
