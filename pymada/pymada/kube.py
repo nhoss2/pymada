@@ -61,3 +61,13 @@ def run_agent_deployment(image, replicas, deploy_name='pymada-agent',
     extensions_v1beta1 = client.ExtensionsV1beta1Api()
     extensions_v1beta1.create_namespaced_deployment(body=deployment, namespace="default")
 
+
+def get_deployment_status(label_selector=None, config_path=None):
+    if config_path is None:
+        base_dir = os.getcwd()
+        config_path = os.path.join(base_dir, 'k3s_config.yaml')
+
+    kube_config.load_kube_config(config_file=config_path)
+    k_client = client.AppsV1beta1Api()
+    api_response = k_client.list_namespaced_deployment('default', label_selector=label_selector)
+    return api_response.to_dict()

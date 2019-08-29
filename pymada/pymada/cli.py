@@ -5,7 +5,7 @@ import fire
 import requests
 
 from .provision import ProvisionGoogle
-from .kube import run_master_server, run_agent_deployment
+from .kube import run_master_server, run_agent_deployment, get_deployment_status
 
 '''
 things to do:
@@ -132,8 +132,18 @@ class CliClient(object):
 
         config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
         gc.write_modify_k3s_config(config, write_path=config_path)
-        print('deploying api server on kubernetes')
+        print('deploying master api server on kubernetes')
         run_master_server(config_path)
+
+        while True:
+            dep_status = get_deployment_status('app=pymada-master')
+            num_avail = dep_status['items'][0]['status']['available_replicas']
+            if num_avail == 1:
+                break
+
+            time.sleep(2)
+        
+
         print('done!')
     
     def run_node_puppeteer(self, runner, replicas=1, packagejson=None, master_url=None,
