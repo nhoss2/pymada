@@ -6,15 +6,7 @@ import time
 
 class AgentTest(unittest.TestCase):
 
-    @patch('agent_server.requests.post')
-    def setUp(self, mock_post):
-        mock_post.return_value.json.return_value = {
-            "contents":"print('test')",
-            "file_name":"test_run_script.py",
-            "file_type":"python",
-            "custom_executable":None
-        }
-
+    def setUp(self):
         file_dir = os.path.dirname(os.path.realpath(__file__))
         self.runner_path = os.path.join(file_dir, 'test_run_script.py')
 
@@ -22,20 +14,23 @@ class AgentTest(unittest.TestCase):
             os.remove(self.runner_path)
 
         self.agent = agent_server.Agent(
-            'http://127.0.0.1:8000', runner_write_path=self.runner_path)
-
+            'http://127.0.0.1:8000', autoregister=False)
+    
     @patch('agent_server.requests.post')
-    def test_agent_get_task(self, mock_post):
-        mock_post.return_value.json.return_value = {"url":"something"}
-        self.agent.get_task_from_master()
+    def test_get_runner(self, mock_post):
+        mock_post.return_value.json.return_value = {
+            'id': 1,
+            'contents': 'print("test")',
+            'file_name': 'test_run_script.py',
+            'file_type': 'python',
+            'custom_executable': None,
+            'dependency_file': None
+        }
 
-        assert type(self.agent.task) is dict
-    
-    def test_agent_register(self):
-        assert self.agent.runner is not None
-    
-    def test_write_runner_file(self):
+        self.agent.get_runner(write_path=self.runner_path)
         assert os.path.exists(self.runner_path)
+
+        assert self.agent.runner is not None
 
     def tearDown(self):
         if os.path.exists(self.runner_path):
