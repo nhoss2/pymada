@@ -61,18 +61,22 @@ def read_provision_settings(settings_path=None):
 
 def request_master(url, method, req_data, master_url=None, num_tries=0):
     provision_settings = read_provision_settings()
-    if 'master_node_ip' not in provision_settings:
-        raise KeyError('master server ip address not in provision_data.json')
-    
+
     if master_url is None:
+        if provision_settings is None:
+            raise FileNotFoundError('no provision_data.json file found')
+
+        if 'master_node_ip' not in provision_settings:
+            raise KeyError('master server ip address not in provision_data.json')
+    
         master_url = 'http://' + provision_settings['master_node_ip'] + ':30200'
 
     try:
         response = requests.request(method, master_url + url, json=req_data)
     except (requests.ConnectionError, requests.Timeout) as e:
-        time.sleep(3)
         if num_tries < 10:
-            return request_master(url, method, req_data, num_tries=num_tries+1)
+            time.sleep(3)
+            return request_master(url, method, req_data, master_url=master_url, num_tries=num_tries+1)
         else:
             raise e
     
@@ -170,6 +174,21 @@ class CliClient(object):
             print('error: json_metadata is not in json format.')
 
         add_url(url, json_metadata, master_url=master_url)
+    
+
+    def stats(self, master_url=None):
+        try:
+            stats = request_master('/stats/', 'GET', None, master_url=master_url)
+        except (requests.ConnectionError, requests.Timeout):
+            print('error connecting to master server')
+            return
+        
+        stats = stats.json()
+        print('URL Tasks: ' + str(stats['urls']) + ' (queued: ' + str(stats['urls_queued'])
+              + ', assigned: ' + str(stats['urls_assigned']) + ', complete: '
+              + str(stats['urls_complete']) + ')')
+        print('Agents: ' + str(stats['registered_agents']))
+        print('Errors Logged: ' + str(stats['errors_logged']))
 
 
 def main():

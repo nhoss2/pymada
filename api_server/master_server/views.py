@@ -121,13 +121,17 @@ class ErrorLogs(APIView):
 class GetStats(APIView):
     def get(self, request, format=None):
         urls = len(UrlTask.objects.all())
-        urls_todo = len(UrlTask.objects.filter(task_state='QUEUED'))
+        urls_queued = len(UrlTask.objects.filter(task_state='QUEUED'))
+        urls_assigned = len(UrlTask.objects.filter(task_state='ASSIGNED'))
+        urls_complete = len(UrlTask.objects.filter(task_state='COMPLETE'))
         registered_agents = len(Agent.objects.all())
 
         errs = len(ErrorLog.objects.all())
         return JsonResponse({
             'urls': urls,
-            'urls_queued': urls_todo,
+            'urls_queued': urls_queued,
+            'urls_assigned': urls_assigned,
+            'urls_complete': urls_complete,
             'errors_logged': errs,
             'registered_agents': registered_agents,
         })
