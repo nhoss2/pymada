@@ -9,5 +9,6 @@ urlpatterns = [
     path('register_agent/', views.RegisterAgent.as_view()),
     path('register_runner/', views.RegisterRunner.as_view()),
     path('runner/<int:pk>/', views.RunnerSingle.as_view()),
-    path('log_error/', views.ErrorLogs.as_view())
+    path('log_error/', views.ErrorLogs.as_view()),
+    path('stats/', views.GetStats.as_view())
 ]

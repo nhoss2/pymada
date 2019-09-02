@@ -32,6 +32,11 @@ class AgentTest(unittest.TestCase):
 
         assert self.agent.runner is not None
 
+        assert self.agent.check_runner() == 'IDLE'
+
+    def test_check_runner(self):
+        assert self.agent.check_runner() == 'NO_RUNNER'
+
     def tearDown(self):
         if os.path.exists(self.runner_path):
             os.remove(self.runner_path)

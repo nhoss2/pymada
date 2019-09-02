@@ -2,7 +2,7 @@ import time
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from master_server.models import UrlTask, Agent, Runner, ErrorLog
 from master_server.serializers import UrlTaskSerializer, AgentSerializer, RunnerSerializer, ErrorLogSerializer
 
@@ -116,3 +116,18 @@ class ErrorLogs(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetStats(APIView):
+    def get(self, request, format=None):
+        urls = len(UrlTask.objects.all())
+        urls_todo = len(UrlTask.objects.filter(task_state='QUEUED'))
+        registered_agents = len(Agent.objects.all())
+
+        errs = len(ErrorLog.objects.all())
+        return JsonResponse({
+            'urls': urls,
+            'urls_queued': urls_todo,
+            'errors_logged': errs,
+            'registered_agents': registered_agents,
+        })

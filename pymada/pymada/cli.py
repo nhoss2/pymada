@@ -42,6 +42,8 @@ things to do:
         - view logs (of single pod through kubernetes api)
 
         - check status (see how many pods running, num urls completed/left)
+            - how many pods running, individual pod stats?
+            - num urls and num left
 
 '''
 
