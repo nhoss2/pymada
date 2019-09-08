@@ -8,6 +8,7 @@ import django
 django.setup()
 from master_server.models import UrlTask, Agent
 from master_server.serializers import UrlTaskSerializer
+from django.contrib.auth.models import User
 
 class Control(object):
 
@@ -135,6 +136,9 @@ def run():
 
     controller = Control()
 
+    if len(User.objects.filter(username='pymadauser')) == 0:
+        User.objects.create_user('pymadauser',None,None)
+    
     command = ["gunicorn", "--bind", "0.0.0.0:8000", "api_server.wsgi"]
     file_dir = os.path.dirname(os.path.realpath(__file__))
     subprocess.Popen(command, cwd=file_dir)
