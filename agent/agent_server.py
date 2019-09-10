@@ -25,13 +25,14 @@ runner_configs = {
 
 class Agent(object):
 
-    def __init__(self, master_base_url, agent_url=None, runner_num=1, autoregister=True, runner_write_path=None):
+    def __init__(self, master_base_url, agent_url=None, runner_num=1, auth_token=None, autoregister=True, runner_write_path=None):
         self.task = None
         self.runner = None
         self.registered_num = None
         self.dep_install_process = None
         self.master_url = master_base_url
         self.runner_num = runner_num
+        self.auth_token = auth_token
 
         if autoregister:
             self.register_on_master(self_url=agent_url)
@@ -39,9 +40,9 @@ class Agent(object):
 
     def register_on_master(self, self_url=None, req_url=None):
         if req_url is None:
-            req_url = self.master_url + '/register_agent/'
-        
-        register_response = self._send_request(req_url, {
+            req_url = '/register_agent/'
+
+        register_response = self._request_master(req_url, 'POST', {
             'hostname': socket.gethostname(),
             'agent_url': self_url
         })
@@ -55,10 +56,9 @@ class Agent(object):
             runner_num = self.runner_num
 
         if req_url is None:
-            req_url = self.master_url + '/runner/'
-            req_url += str(runner_num) + '/'
+            req_url = '/runner/' + str(runner_num) + '/'
 
-        res = self._send_request(req_url)
+        res = self._request_master(req_url, 'GET')
 
         if not res.ok:
             logging.warning('error with getting runner: ' + str(res.text))
@@ -121,9 +121,9 @@ class Agent(object):
             self.task['task_result'] = json.dumps(results)
 
         if req_url is None:
-            req_url = self.master_url + '/urls/' + str(self.task['id']) + '/'
+            req_url = '/urls/' + str(self.task['id']) + '/'
 
-        r = requests.put(req_url, json=self.task)
+        r = self._request_master(req_url, 'PUT', json_data=self.task)
 
         if not r.ok:
             logging.warning('error with saving task result: ' + str(r.json()))
@@ -161,7 +161,7 @@ class Agent(object):
 
     def add_url(self, url, json_metadata=None, req_url=None):
         if req_url is None:
-            req_url = self.master_url + '/urls/'
+            req_url = '/urls/'
 
         new_url_task = {
             "url": url
@@ -170,7 +170,7 @@ class Agent(object):
         if json_metadata is not None:
             new_url_task['json_metadata'] = json_metadata
 
-        r = self._send_request(req_url, json_data=new_url_task)
+        r = self._request_master(req_url, 'POST', json_data=new_url_task)
 
         if not r.ok:
             err_msg = r.json()
@@ -181,7 +181,7 @@ class Agent(object):
     
     def log_error(self, error_msg, req_url=None):
         if req_url is None:
-            req_url = self.master_url + '/log_error/'
+            req_url = '/log_error/'
         
         msg = {
             'message': error_msg,
@@ -189,7 +189,7 @@ class Agent(object):
             'runner': self.runner_num
         }
 
-        r = self._send_request(req_url, json_data=msg)
+        r = self._request_master(req_url, 'POST', json_data=msg)
         
         if not r.ok:
             err_msg = r.json()
@@ -198,14 +198,33 @@ class Agent(object):
         else:
             return r.json()
 
-    def _send_request(self, req_url, json_data=None, timeout_wait=1):
+    def _send_request(self, req_url, method, json_data=None, headers={}, _num_tries=0):
         try:
-            r = requests.post(req_url, json=json_data, timeout=60)
-            return r
-        except requests.exceptions.ConnectionError:
-            logging.warning('unable to contact master server, retrying ' + req_url)
-            time.sleep(timeout_wait)
-            return self._send_request(req_url, json_data)
+            response = requests.request(method, req_url, json=json_data, headers=headers, timeout=60)
+            return response
+        except (requests.ConnectionError, requests.Timeout) as e:
+            if _num_tries < 10:
+                logging.warning('unable to contact, retrying ' + req_url)
+                time.sleep(3)
+                return self._send_request(req_url, method, json_data=json_data, headers=headers, _num_tries=_num_tries+1)
+            else:
+                raise e
+        
+    def _request_master(self, url, method, json_data=None, master_url=None):
+        if master_url is not None:
+            req_url = master_url + url
+        else:
+            req_url = self.master_url + url
+
+        headers = {}
+
+        if self.auth_token is not None:
+            headers = {
+                'pymada_token_auth': self.auth_token
+            }
+
+        return self._send_request(req_url, method, json_data, headers=headers)
+
 
 
 class Runner(object):
@@ -273,10 +292,15 @@ def gen_flask_app():
     if 'RUNNER_NUM' in os.environ:
         runner_num = os.environ['RUNNER_NUM']
 
+    auth_token = None
+    if 'PYMADA_TOKEN_AUTH' in os.environ:
+        auth_token = os.environ['PYMADA_TOKEN_AUTH']
+
     if 'MASTER_URL' in os.environ:
-        agent = Agent(os.environ['MASTER_URL'], agent_url=agent_url, runner_num=runner_num)
+        agent = Agent(os.environ['MASTER_URL'], agent_url=agent_url, runner_num=runner_num, auth_token=auth_token)
     else:
-        agent = Agent('http://localhost:8000', agent_url=agent_url, runner_num=runner_num)
+        agent = Agent('http://localhost:8000', agent_url=agent_url, runner_num=runner_num, auth_token=auth_token)
+
     
 
     @flask_app.route('/get_task', methods=['POST'])

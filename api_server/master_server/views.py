@@ -36,10 +36,8 @@ class EnvTokenAuth(authentication.BaseAuthentication):
 
 
 class EnvTokenAPIView(APIView):
-    if 'PYMADA_TOKEN_AUTH' in os.environ:
-        authentication_classes = [EnvTokenAuth]
-        permission_classes = [IsAuthenticated]
-
+    authentication_classes = [EnvTokenAuth]
+    permission_classes = [IsAuthenticated]
 
 class UrlList(EnvTokenAPIView):
 
@@ -57,7 +55,7 @@ class UrlList(EnvTokenAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UrlSingle(APIView):
+class UrlSingle(EnvTokenAPIView):
 
     def get_task(self, pk):
         try:
@@ -75,7 +73,7 @@ class UrlSingle(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class RegisterAgent(APIView):
+class RegisterAgent(EnvTokenAPIView):
 
     def get(self, request, format=None):
         agents = Agent.objects.all()
@@ -92,7 +90,7 @@ class RegisterAgent(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class RegisterRunner(APIView):
+class RegisterRunner(EnvTokenAPIView):
     def get(self, request, format=None):
         runners = Runner.objects.all()
         serializer = RunnerSerializer(runners, many=True)
@@ -105,7 +103,7 @@ class RegisterRunner(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class RunnerSingle(APIView):
+class RunnerSingle(EnvTokenAPIView):
 
     def get_runner(self, pk):
         try:
@@ -126,7 +124,7 @@ class RunnerSingle(APIView):
         return Response(serializer.data)
     
 
-class ErrorLogs(APIView):
+class ErrorLogs(EnvTokenAPIView):
     def get(self, request, format=None):
         errs = ErrorLog.objects.all()
         serializer = ErrorLogSerializer(errs, many=True)
@@ -140,7 +138,7 @@ class ErrorLogs(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class GetStats(APIView):
+class GetStats(EnvTokenAPIView):
     def get(self, request, format=None):
         urls = len(UrlTask.objects.all())
         urls_queued = len(UrlTask.objects.filter(task_state='QUEUED'))
