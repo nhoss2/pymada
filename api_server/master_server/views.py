@@ -81,13 +81,21 @@ class RegisterAgent(EnvTokenAPIView):
         return Response(serializer.data)
 
     def post(self, request, format=None):
-        request.data['last_contact'] = int(time.time())
-        print('new agent', request.data)
         serializer = AgentSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            agent_search = Agent.objects.filter(hostname=serializer.validated_data['hostname'],
+                agent_url=serializer.validated_data['agent_url'])
             
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            if len(agent_search) == 0:
+                print('new agent', request.data)
+                serializer.save(last_contact=time.time())
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            
+            recorded_agent = agent_search[0]
+            print('reconnect agent ' + str(recorded_agent.id))
+            recorded_s = AgentSerializer(recorded_agent)
+            
+            return Response(recorded_s.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RegisterRunner(EnvTokenAPIView):
