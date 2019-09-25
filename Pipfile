@@ -15,9 +15,9 @@ requests = "*"
 gunicorn = "*"
 pylint-django = "*"
 flask = "*"
-fire = "*"
 kubernetes = "*"
 cryptography = "*"
+click = "*"
 pymada = {editable = true,path = "./pymada"}
 
 [requires]

@@ -12,14 +12,14 @@ setup(
     author="Nafis Hossain",
     author_email="nafis@labs.im",
 
-    description="flight search stuff",
+    description="pymada",
 
     packages=find_packages(),
 
     install_requires=requirements,
 
     entry_points={
-        'console_scripts': ['pymada=pymada.cli:main']
+        'console_scripts': ['pymada=pymada.cli:cli']
     },
 
     classifiers=[],
