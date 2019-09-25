@@ -8,8 +8,20 @@ if ('AGENT_PORT' in process.env){
 
 exports.getTask = async function(){
     const reqUrl = exports.host + '/get_task';
-    const task_data = await fetch(reqUrl, {method: 'POST'});
-    return await task_data.json();
+    let task_data = await fetch(reqUrl, {method: 'POST'});
+    task_data = await task_data.json();
+
+    if (typeof(task_data['json_metadata']) == 'string'){
+        try{
+            task_data['json_metadata'] = JSON.parse(task_data['json_metadata']);
+        } catch (e){
+            if (!(e instanceof SyntaxError)){
+                throw e;
+            } 
+        }
+    }
+
+    return await task_data;
 }
 
 exports.saveResult = async function(result){

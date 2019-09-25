@@ -39,8 +39,6 @@ def request_master(url, method, req_data, auth_token=None, master_url=None, _num
     if auth_token is not None:
         headers['pymada_token_auth'] = auth_token
     
-    # todo: test request master with auth token and test with request failure
-
     try:
         response = requests.request(method, master_url + url, json=req_data, headers=headers)
     except (requests.ConnectionError, requests.Timeout) as e:
@@ -54,15 +52,13 @@ def request_master(url, method, req_data, auth_token=None, master_url=None, _num
     return response
 
 def add_runner(runner_path, file_type, dependency_file_path=None, master_url=None):
-    full_runner_path = os.path.expanduser(runner_path)
-
-    if not os.path.exists(full_runner_path):
+    if not os.path.exists(runner_path):
         print('error: could not find runner file')
         return
 
     runner_data = {
-        'contents': open(full_runner_path).read(),
-        'file_name': os.path.basename(full_runner_path),
+        'contents': open(runner_path).read(),
+        'file_name': os.path.basename(runner_path),
         'file_type': file_type
     }
 

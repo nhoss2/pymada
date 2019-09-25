@@ -88,24 +88,14 @@ def launch(num_agents, provider, preempt_agents, preempt_master):
     print('done!')
 
 @cli.command()
-@click.argument('runner', type=click.File())
+@click.argument('runner', type=click.Path(dir_okay=False, exists=True, readable=True))
 @click.argument('replicas', type=click.INT, default=1)
-@click.option('--packagejson', type=click.File(), default=None)
+@click.option('--packagejson', type=click.Path(dir_okay=False, exists=True, readable=True), default=None)
 @click.option('--master-url', default=None)
 @click.option('--no-kube-deploy', default=False, flag_value=True)
 def run_node_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
                         no_kube_deploy=False):
-    if type(replicas) is not int:
-        print('error: replicas argument needs to be a number. given input:', replicas)
-        return
-
-    full_dep_path = None
-    if packagejson is not None:
-        full_dep_path = os.path.expanduser(packagejson)
-        if not os.path.exists(full_dep_path):
-            print('error: could not find package.json')
-            return
-    add_runner(runner, 'node_puppeteer', full_dep_path, master_url=master_url)
+    add_runner(runner, 'node_puppeteer', packagejson, master_url=master_url)
 
     if not no_kube_deploy:
         print('deploying agents on kubernetes')

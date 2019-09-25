@@ -168,7 +168,14 @@ class Agent(object):
         }
 
         if json_metadata is not None:
-            new_url_task['json_metadata'] = json_metadata
+
+            print('json_metadata', type(json_metadata), json_metadata)
+            if type(json_metadata) == dict:
+                new_url_task['json_metadata'] = json.dumps(json_metadata)
+            else:
+                new_url_task['json_metadata'] = json_metadata
+        
+        print('new url data', new_url_task)
 
         r = self._request_master(req_url, 'POST', json_data=new_url_task)
 

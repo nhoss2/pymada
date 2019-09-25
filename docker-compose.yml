@@ -4,7 +4,8 @@ services:
     image: "nhoss2/pymada-master"
     ports:
       - "30200:8000"
-    command: make setup-test-server
+    #command: make setup-test-server
+    command: python control.py
     environment:
       PYTHONUNBUFFERED: 1
       LOG_LEVEL: "DEBUG"
