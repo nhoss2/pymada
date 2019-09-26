@@ -57,7 +57,8 @@ def cli():
 @click.option('-p', '--provider', default='gc')
 @click.option('--preempt-agents/--no-preempt-agents', default=True)
 @click.option('--preempt-master/--no-preempt-master', default=True)
-def launch(num_agents, provider, preempt_agents, preempt_master):
+@click.option('--no-token-auth', default=False, flag_value=True)
+def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_token_auth=False):
 
     if type(num_agents) is not int:
         print('error: agents argument needs to be a number. given input:', num_agents)
@@ -74,8 +75,14 @@ def launch(num_agents, provider, preempt_agents, preempt_master):
     config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
     gc.write_modify_k3s_config(config, write_path=config_path)
     print('deploying master api server on kubernetes')
-    run_master_server(config_path)
 
+    if no_token_auth:
+        run_master_server(config_path)
+    else:
+        provision_settings = read_provision_settings()
+        run_master_server(config_path, auth_token=provision_settings['pymada_auth_token'])
+
+    # wait for master api server deployment on kubernetes
     while True:
         dep_status = get_deployment_status('app=pymada-master')
         num_avail = dep_status['items'][0]['status']['available_replicas']
@@ -93,13 +100,19 @@ def launch(num_agents, provider, preempt_agents, preempt_master):
 @click.option('--packagejson', type=click.Path(dir_okay=False, exists=True, readable=True), default=None)
 @click.option('--master-url', default=None)
 @click.option('--no-kube-deploy', default=False, flag_value=True)
+@click.option('--no-token-auth', default=False, flag_value=True)
 def run_node_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
-                        no_kube_deploy=False):
+                        no_kube_deploy=False, no_token_auth=False):
     add_runner(runner, 'node_puppeteer', packagejson, master_url=master_url)
 
     if not no_kube_deploy:
-        print('deploying agents on kubernetes')
-        run_agent_deployment('nhoss2/pymada-node-puppeteer', replicas)
+        if no_token_auth:
+            run_agent_deployment('nhoss2/pymada-node-puppeteer', replicas)
+        else:
+            print('deploying agents on kubernetes')
+            provision_settings = read_provision_settings()
+            run_agent_deployment('nhoss2/pymada-node-puppeteer', replicas,
+                                 auth_token=provision_settings['pymada_auth_token'])
 
 
 @cli.command()

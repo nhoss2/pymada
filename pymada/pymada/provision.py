@@ -149,7 +149,8 @@ class ProvisionGoogle(object):
             'master_node_name': master_node_name,
             'master_node_ip': '',
             'token': self.ccg.token,
-            'agents': []
+            'agents': [],
+            'pymada_auth_token': self.ccg.gen_token(30)
         }
 
         self.save_settings()

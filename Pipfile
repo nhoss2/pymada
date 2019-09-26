@@ -19,6 +19,7 @@ kubernetes = "*"
 cryptography = "*"
 click = "*"
 pymada = {editable = true,path = "./pymada"}
+pyyaml = "*"
 
 [requires]
 python_version = "3.6"
