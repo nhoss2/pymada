@@ -9,7 +9,7 @@ services:
     environment:
       PYTHONUNBUFFERED: 1
       LOG_LEVEL: "DEBUG"
-      PYMADA_TOKEN_AUTH: "testing"
+      #PYMADA_TOKEN_AUTH: "testing"
   
   agent1:
     image: "nhoss2/pymada-node-puppeteer"
@@ -24,7 +24,7 @@ services:
       AGENT_PORT: "5001"
       PYTHONUNBUFFERED: 1
       LOG_LEVEL: "DEBUG"
-      PYMADA_TOKEN_AUTH: "testing"
+      #PYMADA_TOKEN_AUTH: "testing"
   
   agent2:
     image: "nhoss2/pymada-node-puppeteer"
@@ -39,4 +39,4 @@ services:
       AGENT_PORT: "5001"
       PYTHONUNBUFFERED: 1
       LOG_LEVEL: "DEBUG"
-      PYMADA_TOKEN_AUTH: "testing"
+      #PYMADA_TOKEN_AUTH: "testing"

@@ -28,7 +28,7 @@ class Agent(models.Model):
     agent_state = models.CharField(choices=agent_states, max_length=10, default='NO_RUNNER')
     last_contact = models.IntegerField()
     agent_url = models.CharField(max_length=300)
-    assigned_runner = models.ForeignKey('Runner', on_delete=models.CASCADE, null=True)
+    runner_num = models.IntegerField(null=True)
 
 class Runner(models.Model):
     contents = models.TextField()

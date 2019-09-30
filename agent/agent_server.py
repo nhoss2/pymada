@@ -44,7 +44,8 @@ class Agent(object):
 
         register_response = self._request_master(req_url, 'POST', {
             'hostname': socket.gethostname(),
-            'agent_url': self_url
+            'agent_url': self_url,
+            'runner_num': self.runner_num
         })
 
         parsed_response = register_response.json()
@@ -297,7 +298,10 @@ def gen_flask_app():
 
     runner_num = 1
     if 'RUNNER_NUM' in os.environ:
-        runner_num = os.environ['RUNNER_NUM']
+        try:
+            runner_num = int(os.environ['RUNNER_NUM'])
+        except ValueError:
+            pass
 
     auth_token = None
     if 'PYMADA_TOKEN_AUTH' in os.environ:

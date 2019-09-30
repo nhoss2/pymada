@@ -10,7 +10,7 @@ agent:
 node-puppeteer:
 	cd agent/images; docker build -f puppeteer.dockerfile .. -t nhoss2/pymada-node-puppeteer
 
-all: master agent node-puppeteer
+all: master node-puppeteer
 
 run-master:
 	docker run -ti -p 8000:8000 nhoss2/pymada-master

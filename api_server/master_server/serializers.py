@@ -17,10 +17,12 @@ class AgentSerializer(serializers.ModelSerializer):
 
     agent_state = serializers.CharField(required=False)
     last_contact = serializers.IntegerField(required=False)
+    runner_num = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = Agent
-        fields = ('id', 'hostname', 'agent_state', 'last_contact', 'agent_url')
+        fields = ('id', 'hostname', 'agent_state', 'last_contact', 'agent_url',
+                  'runner_num')
     
 
 class RunnerSerializer(serializers.ModelSerializer):
