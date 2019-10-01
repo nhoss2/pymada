@@ -5,7 +5,7 @@ import click
 import requests
 
 from .provision import ProvisionGoogle
-from .kube import run_master_server, run_agent_deployment, get_deployment_status
+from .kube import run_master_server, run_agent_deployment, get_deployment_status, delete_all_deployments
 from .master_client import read_provision_settings, request_master, add_runner, add_url
 
 '''
@@ -57,8 +57,9 @@ def cli():
 @click.option('-p', '--provider', default='gc')
 @click.option('--preempt-agents/--no-preempt-agents', default=True)
 @click.option('--preempt-master/--no-preempt-master', default=True)
-@click.option('--no-token-auth', default=False, flag_value=True)
-def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_token_auth=False):
+#@click.option('--no-token-auth', default=False, flag_value=True)
+def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_token_auth=False,
+           config_path=None):
 
     if type(num_agents) is not int:
         print('error: agents argument needs to be a number. given input:', num_agents)
@@ -72,25 +73,9 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
     if config == "kube conf doesnt exist":
         raise Exception("There has been an error with installing kubernetes")
 
-    config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
+    if config_path is None:
+        config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
     gc.write_modify_k3s_config(config, write_path=config_path)
-    print('deploying master api server on kubernetes')
-
-    if no_token_auth:
-        run_master_server(config_path)
-    else:
-        provision_settings = read_provision_settings()
-        run_master_server(config_path, auth_token=provision_settings['pymada_auth_token'])
-
-    # wait for master api server deployment on kubernetes
-    while True:
-        dep_status = get_deployment_status('app=pymada-master')
-        num_avail = dep_status['items'][0]['status']['available_replicas']
-        if num_avail == 1:
-            break
-
-        time.sleep(2)
-    
 
     print('done!')
 
@@ -102,7 +87,29 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
 @click.option('--no-kube-deploy', default=False, flag_value=True)
 @click.option('--no-token-auth', default=False, flag_value=True)
 def run_node_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
-                        no_kube_deploy=False, no_token_auth=False):
+                        no_kube_deploy=False, no_token_auth=False, config_path=None):
+
+    if not no_kube_deploy:
+        print('deploying master api server on kubernetes')
+
+        if config_path is None:
+            config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
+
+        if no_token_auth:
+            run_master_server(config_path)
+        else:
+            provision_settings = read_provision_settings()
+            run_master_server(config_path, auth_token=provision_settings['pymada_auth_token'])
+
+        # wait for master api server deployment on kubernetes
+        while True:
+            dep_status = get_deployment_status('app=pymada-master')
+            num_avail = dep_status['items'][0]['status']['available_replicas']
+            if num_avail == 1:
+                break
+
+            time.sleep(2)
+
     add_runner(runner, 'node_puppeteer', packagejson, master_url=master_url)
 
     if not no_kube_deploy:
@@ -112,7 +119,8 @@ def run_node_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
             print('deploying agents on kubernetes')
             provision_settings = read_provision_settings()
             run_agent_deployment('nhoss2/pymada-node-puppeteer', replicas,
-                                 auth_token=provision_settings['pymada_auth_token'])
+                                 auth_token=provision_settings['pymada_auth_token'],
+                                 config_path=config_path)
 
 
 @cli.command()
@@ -141,6 +149,35 @@ def stats(master_url=None):
             + str(stats['urls_complete']) + ')')
     print('Agents: ' + str(stats['registered_agents']))
     print('Errors Logged: ' + str(stats['errors_logged']))
+
+
+@cli.command()
+def stop_run(master_url=None):
+    pass
+
+@cli.command()
+def delete_deployments():
+    delete_all_deployments()
+
+    print('waiting for deployments to terminate')
+
+    while True:
+        dep_status = get_deployment_status('app=pymada-master')
+        items = len(dep_status['items'])
+        if items == 0:
+            break
+
+        time.sleep(2)
+
+    while True:
+        dep_status = get_deployment_status('app=pymada-agent')
+        items = len(dep_status['items'])
+        if items == 0:
+            break
+
+        time.sleep(2)
+
+    print('deleted')
 
 
 if __name__ == '__main__':

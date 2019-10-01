@@ -2,11 +2,13 @@ apiVersion: v1
 kind: Service
 metadata:  
   name: pymada-master-nodeport
+  labels:
+    service: pymada-master-nodeport
 spec:
   selector:    
     app: pymada-master
   type: NodePort
-  ports:  
+  ports:
   - port: 80
     targetPort: 8000
     nodePort: 30200

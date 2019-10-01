@@ -24,8 +24,11 @@ def run_master_server(config_path=None, auth_token=None, num_retries=5):
             temp_file.write(master_yaml)
         utils.create_from_yaml(kube_client, temp_path)
 
-        utils.create_from_yaml(kube_client, os.path.join(base_dir, 'kube_yaml', 'pymada_master_service.yaml'))
-        utils.create_from_yaml(kube_client, os.path.join(base_dir, 'kube_yaml', 'pymada_master_nodeport.yaml'))
+        if len(get_service_status('service=pymada-master-service').items) == 0:
+            utils.create_from_yaml(kube_client, os.path.join(base_dir, 'kube_yaml', 'pymada_master_service.yaml'))
+
+        if len(get_service_status('service=pymada-master-nodeport').items) == 0:
+            utils.create_from_yaml(kube_client, os.path.join(base_dir, 'kube_yaml', 'pymada_master_nodeport.yaml'))
     except (utils.FailToCreateError, client.rest.ApiException) as e:
         if num_retries > 0:
             time.sleep(5)
@@ -33,10 +36,8 @@ def run_master_server(config_path=None, auth_token=None, num_retries=5):
         else:
             raise e
 
-    ''' 
     if os.path.exists(temp_path):
         os.remove(temp_path)
-    '''
 
 
 def setup_master_api_deployment(yaml_path, auth_token=None):
@@ -84,7 +85,7 @@ def run_deployment(image, replicas, deploy_name,
     extensions_v1beta1.create_namespaced_deployment(body=deployment, namespace="default")
 
 
-def run_agent_deployment(image, replicas, deploy_name='pymada-agent',
+def run_agent_deployment(image, replicas, deploy_name='pymada-agents-deployment',
                              template_label={'app': 'pymada-agent'},
                              agent_port=5001, container_name='pymada-single-agent',
                              config_path=None, auth_token=None):
@@ -103,43 +104,6 @@ def run_agent_deployment(image, replicas, deploy_name='pymada-agent',
             container_name, env_vars, container_ports, config_path)
 
 
-'''
-def run_agent_deployment(image, replicas, deploy_name='pymada-agent',
-                             template_label={'app': 'pymada-agent'},
-                             agent_port='5001', container_name='pymada-single-agent',
-                             config_path=None):
-
-    container = client.V1Container(
-        name=container_name,
-        image=image,
-        ports=[client.V1ContainerPort(container_port=5001)],
-        env=[client.V1EnvVar("MASTER_URL", "http://pymadamaster:8000"),
-             client.V1EnvVar("AGENT_PORT", agent_port),
-             client.V1EnvVar("AGENT_ADDR", value_from=client.V1EnvVarSource(
-                 field_ref=client.V1ObjectFieldSelector(field_path="status.podIP")))])
-
-    template = client.V1PodTemplateSpec(
-        metadata=client.V1ObjectMeta(labels=template_label),
-        spec=client.V1PodSpec(containers=[container]))
-
-    spec = client.ExtensionsV1beta1DeploymentSpec(
-        replicas=replicas,
-        template=template)
-
-    deployment = client.ExtensionsV1beta1Deployment(
-        api_version="extensions/v1beta1",
-        kind="Deployment",
-        metadata=client.V1ObjectMeta(name=deploy_name),
-        spec=spec)
-
-    if config_path is None:
-        base_dir = os.getcwd()
-        config_path = os.path.join(base_dir, 'k3s_config.yaml')
-    kube_config.load_kube_config(config_file=config_path)
-    extensions_v1beta1 = client.ExtensionsV1beta1Api()
-    extensions_v1beta1.create_namespaced_deployment(body=deployment, namespace="default")
-'''
-
 def get_deployment_status(label_selector=None, config_path=None):
     if config_path is None:
         base_dir = os.getcwd()
@@ -149,3 +113,33 @@ def get_deployment_status(label_selector=None, config_path=None):
     k_client = client.AppsV1beta1Api()
     api_response = k_client.list_namespaced_deployment('default', label_selector=label_selector)
     return api_response.to_dict()
+
+
+def delete_deployment(deployment_name, config_path=None):
+    if config_path is None:
+        base_dir = os.getcwd()
+        config_path = os.path.join(base_dir, 'k3s_config.yaml')
+    kube_config.load_kube_config(config_file=config_path)
+    extensions_v1beta1 = client.ExtensionsV1beta1Api()
+    extensions_v1beta1.delete_namespaced_deployment(deployment_name, 'default', propagation_policy='Foreground')
+
+def delete_all_deployments(config_path=None):
+    deployment_names = ['pymada-agents-deployment', 'pymada-master-deployment']
+
+    for deployment_name in deployment_names:
+        delete_deployment(deployment_name, config_path=config_path)
+
+
+def get_service_status(label_selector='', config_path=None):
+    if config_path is None:
+        base_dir = os.getcwd()
+        config_path = os.path.join(base_dir, 'k3s_config.yaml')
+    
+    kube_config.load_kube_config(config_file=config_path)
+    k_client = client.CoreV1Api()
+    return k_client.list_namespaced_service('default', label_selector=label_selector)
+
+
+if __name__ == '__main__':
+    #print(len(get_service_status('service=pymada-maswwter-service', '/home/nafis/code/pymada/test_project/k3s_config.yaml').items))
+    delete_all_deployments(config_path='/home/nafis/code/pymada/test_project/k3s_config.yaml')
