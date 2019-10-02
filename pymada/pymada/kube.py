@@ -1,7 +1,9 @@
 import os
 import urllib3
 import time
+import datetime
 import yaml
+from dateutil.tz import tzutc
 from kubernetes import client, utils, config
 from kubernetes.config import kube_config
 
@@ -140,6 +142,34 @@ def get_service_status(label_selector='', config_path=None):
     return k_client.list_namespaced_service('default', label_selector=label_selector)
 
 
-if __name__ == '__main__':
-    #print(len(get_service_status('service=pymada-maswwter-service', '/home/nafis/code/pymada/test_project/k3s_config.yaml').items))
-    delete_all_deployments(config_path='/home/nafis/code/pymada/test_project/k3s_config.yaml')
+def get_pod_logs(pod_name, config_path=None):
+    if config_path is None:
+        base_dir = os.getcwd()
+        config_path = os.path.join(base_dir, 'k3s_config.yaml')
+    
+    kube_config.load_kube_config(config_file=config_path)
+    k_client = client.CoreV1Api()
+    return k_client.read_namespaced_pod_log(pod_name, 'default')
+
+
+def get_pod_list(config_path=None):
+    if config_path is None:
+        base_dir = os.getcwd()
+        config_path = os.path.join(base_dir, 'k3s_config.yaml')
+    
+    kube_config.load_kube_config(config_file=config_path)
+    k_client = client.CoreV1Api()
+
+    output = []
+    pod_info = k_client.list_namespaced_pod('default')
+    for pod in pod_info.items:
+        output.append({
+            'name': pod.metadata.name,
+            'node_name': pod.spec.node_name,
+            'status': pod.status.phase,
+            'age': datetime.datetime.now(tz=tzutc()) - pod.status.start_time,
+            'restart_count': pod.status.container_statuses[0].restart_count,
+            'deletion_timestamp': pod.metadata.deletion_timestamp
+        })
+
+    return output

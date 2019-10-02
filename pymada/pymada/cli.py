@@ -3,9 +3,11 @@ import json
 import time
 import click
 import requests
+from tabulate import tabulate
 
 from .provision import ProvisionGoogle
-from .kube import run_master_server, run_agent_deployment, get_deployment_status, delete_all_deployments
+from .kube import (run_master_server, run_agent_deployment, get_deployment_status,
+                   delete_all_deployments, get_pod_list, get_pod_logs)
 from .master_client import read_provision_settings, request_master, add_runner, add_url
 
 '''
@@ -88,6 +90,9 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
 @click.option('--no-token-auth', default=False, flag_value=True)
 def run_node_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
                         no_kube_deploy=False, no_token_auth=False, config_path=None):
+    
+
+    #todo: show error message if deployment already exists
 
     if not no_kube_deploy:
         print('deploying master api server on kubernetes')
@@ -151,11 +156,51 @@ def stats(master_url=None):
     print('Errors Logged: ' + str(stats['errors_logged']))
 
 
-@cli.command()
-def stop_run(master_url=None):
+@cli.group()
+#@click.options()
+def kube():
     pass
 
-@cli.command()
+@kube.command()
+@click.option('--show-nodes', default=False, flag_value=True)
+def list_pods(show_nodes=False):
+    pod_list = get_pod_list()
+
+    table = []
+    header = ['Name', 'Status', 'Restarts', 'Age']
+    for pod in pod_list:
+        row = []
+        row.append(pod['name'])
+
+        if pod['deletion_timestamp'] is not None:
+            row.append('Terminating')
+        else:
+            row.append(pod['status'])
+        
+        row.append(pod['restart_count'])
+
+        row.append(str(pod['age']).split('.')[0])
+
+        if show_nodes:
+            row.append(pod['node_name'])
+            header.append('Node Name')
+        
+        table.append(row)
+
+    print(tabulate(table, headers=header))
+
+@kube.command()
+@click.argument('pod_name')
+def get_logs(pod_name):
+    pod_names = [p['name'] for p in get_pod_list()]
+
+    if pod_name not in pod_names:
+        click.echo('error: pod name not found')
+        return
+
+    print(get_pod_logs(pod_name))
+
+@kube.command()
 def delete_deployments():
     delete_all_deployments()
 
