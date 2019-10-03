@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import shutil
 import click
 import requests
 from tabulate import tabulate
@@ -53,6 +54,20 @@ things to do:
 @click.group()
 def cli():
     pass
+
+@cli.command()
+@click.argument('directory', default='.')
+def init(directory='.'):
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    settings_template_path = os.path.join(file_dir, 'settings_template.yaml')
+    write_path = os.path.join(directory, 'pymada_settings.yaml')
+
+    print('writing settings at ' + write_path)
+    shutil.copyfile(settings_template_path, write_path)
+
 
 @cli.command()
 @click.argument('num-agents', type=click.INT)
