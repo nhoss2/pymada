@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: pymada-node-puppeteer-deployment
 spec:
-  replicas: 5
+  replicas: 1
   selector:
     matchLabels:
       app: pymada-node-puppeteer

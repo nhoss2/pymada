@@ -18,7 +18,7 @@ def read_provision_settings(settings_path=None):
         return json.load(provision_json)
 
 
-def request_master(url, method, req_data, auth_token=None, master_url=None, _num_tries=0):
+def request_master(url, method, req_data=None, auth_token=None, master_url=None, _num_tries=0):
     provision_settings = read_provision_settings()
 
     if master_url is None:
@@ -90,3 +90,10 @@ def add_url(url, json_metadata=None, master_url=None):
     else:
         print(response.text)
 
+def get_results(master_url=None):
+    response = request_master('/urls/', 'GET', master_url=master_url)
+
+    if response.ok:
+        return response.text
+    else:
+        print(response.text)

@@ -9,7 +9,8 @@ from tabulate import tabulate
 from .provision import ProvisionGoogle
 from .kube import (run_master_server, run_agent_deployment, get_deployment_status,
                    delete_all_deployments, get_pod_list, get_pod_logs)
-from .master_client import read_provision_settings, request_master, add_runner, add_url
+from .master_client import (read_provision_settings, request_master, add_runner, 
+                            add_url, get_results)
 
 '''
 things to do:
@@ -56,7 +57,7 @@ def cli():
     pass
 
 @cli.command()
-@click.argument('directory', default='.')
+@click.argument('directory', default='.', type=click.Path())
 def init(directory='.'):
     if not os.path.exists(directory):
         os.mkdir(directory)
@@ -69,6 +70,11 @@ def init(directory='.'):
     shutil.copyfile(settings_template_path, write_path)
 
 
+'''
+requires: 
+    - provision_data.json
+    - cloud_api_auth.json
+'''
 @cli.command()
 @click.argument('num-agents', type=click.INT)
 @click.option('-p', '--provider', default='gc')
@@ -82,6 +88,8 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
         print('error: agents argument needs to be a number. given input:', num_agents)
         return
     
+    #TODO: checks for cloud_api_auth.json file
+
     gc = ProvisionGoogle()
     gc.create_master(preemptible=preempt_master)
     gc.create_agent(num_agents, preemptible=preempt_agents)
@@ -92,10 +100,20 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
 
     if config_path is None:
         config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
+    
+    if not os.path.exists(config_path):
+        print('error: kubernetes config file not found. Searching for: ' + config_path)
+        return
+
     gc.write_modify_k3s_config(config, write_path=config_path)
 
     print('done!')
 
+'''
+requires: 
+    - provision_data.json
+    - k3s_config.yaml
+'''
 @cli.command()
 @click.argument('runner', type=click.Path(dir_okay=False, exists=True, readable=True))
 @click.argument('replicas', type=click.INT, default=1)
@@ -106,10 +124,17 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
 def run_node_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
                         no_kube_deploy=False, no_token_auth=False, config_path=None):
     
-
-    #todo: show error message if deployment already exists
-
     if not no_kube_deploy:
+        if config_path is None:
+            config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
+
+        # check if master deployment already exists
+        master_dep_status = get_deployment_status('app=pymada-master')
+        if len(master_dep_status['items']) != 0:
+            print('error: master api server deployment already exists. ' +
+                  'You can remove all current deployments with "pymada kube delete-deployments"')
+            return
+
         print('deploying master api server on kubernetes')
 
         if config_path is None:
@@ -133,16 +158,21 @@ def run_node_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
     add_runner(runner, 'node_puppeteer', packagejson, master_url=master_url)
 
     if not no_kube_deploy:
+        print('deploying agents on kubernetes')
         if no_token_auth:
-            run_agent_deployment('nhoss2/pymada-node-puppeteer', replicas)
+            run_agent_deployment('nhoss2/pymada-node-puppeteer', replicas,
+                                 config_path=config_path)
         else:
-            print('deploying agents on kubernetes')
             provision_settings = read_provision_settings()
             run_agent_deployment('nhoss2/pymada-node-puppeteer', replicas,
                                  auth_token=provision_settings['pymada_auth_token'],
                                  config_path=config_path)
 
 
+'''
+requires: 
+    - provision_data.json
+'''
 @cli.command()
 @click.argument('url')
 @click.option('--json-metadata', default=None)
@@ -154,6 +184,10 @@ def add_url_task(url, json_metadata=None, master_url=None):
     add_url(url, json_metadata, master_url=master_url)
 
 
+'''
+requires: 
+    - provision_data.json
+'''
 @cli.command()
 @click.option('--master-url', default=None)
 def stats(master_url=None):
@@ -171,11 +205,27 @@ def stats(master_url=None):
     print('Errors Logged: ' + str(stats['errors_logged']))
 
 
+'''
+requires: 
+    - provision_data.json
+'''
+@cli.command()
+@click.argument('output_path', type=click.Path())
+def get_output(output_path):
+    results = get_results()
+    if results is not None:
+        with open(output_path, 'w') as outputfile:
+            outputfile.write(results)
+
 @cli.group()
 #@click.options()
 def kube():
     pass
 
+'''
+requires: 
+    - k3s_config.json
+'''
 @kube.command()
 @click.option('--show-nodes', default=False, flag_value=True)
 def list_pods(show_nodes=False):
@@ -204,6 +254,10 @@ def list_pods(show_nodes=False):
 
     print(tabulate(table, headers=header))
 
+'''
+requires:
+    - k3s_config.json
+'''
 @kube.command()
 @click.argument('pod_name')
 def get_logs(pod_name):
@@ -215,6 +269,10 @@ def get_logs(pod_name):
 
     print(get_pod_logs(pod_name))
 
+'''
+requires:
+    - k3s_config.json
+'''
 @kube.command()
 def delete_deployments():
     delete_all_deployments()
