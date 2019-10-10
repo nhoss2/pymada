@@ -1,13 +1,14 @@
-route = 'something'
-k3s_token = 'aaa'
+route = '' # placeholder line, replaced by provision.py
+k3s_token = '' # placeholder line
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import os 
 import subprocess
 
 def run_install(bind_address):
     print('bootstrap.py token', k3s_token, 'address', bind_address)
+    # note if updating k3s version, need to update on provision.py as well
     command = 'K3S_CLUSTER_SECRET=' + k3s_token + ' K3S_KUBECONFIG_OUTPUT=/kubeconfig.yaml' +\
-        ' INSTALL_K3S_VERSION=v0.6.1 sh /k3s_install.sh --node-label=pymada-role=master'
+        ' INSTALL_K3S_VERSION=v0.9.1 sh /k3s_install.sh --node-label=pymada-role=master'
     print('bootstrap.py running', command)
 
     subprocess.run(command, shell=True)

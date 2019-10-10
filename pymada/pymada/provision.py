@@ -80,8 +80,6 @@ class CloudConfigGen(object):
     def gen_master(self):
         yaml_file = open(self.master_yaml).read()
 
-        #k3s_command = 'K3S_CLUSTER_SECRET=' + self.token + ' K3S_KUBECONFIG_OUTPUT=/kubeconfig.yaml tmux new-session -d /k3s server\n'
-        #k3s_command = 'K3S_CLUSTER_SECRET=' + self.token + ' K3S_KUBECONFIG_OUTPUT=/kubeconfig.yaml sh /k3s_install.sh --bind-address 0.0.0.0\n' +\
         k3s_command = 'python3 /bootstrap.py\n\nwrite_files:\n  - content: |\n'
         
         with open(self.bootstrap_server) as bootstrap_script:
@@ -98,7 +96,7 @@ class CloudConfigGen(object):
         yaml_file = open(self.node_yaml).read()
 
         # note, if updating K3S version, need to update on bootstrap.py as well
-        k3s_command = 'INSTALL_K3S_VERSION=v0.6.1 K3S_CLUSTER_SECRET=' + self.token + ' K3S_URL="https://' + master_ip + ':6443" sh /k3s_install.sh\n'
+        k3s_command = 'INSTALL_K3S_VERSION=v0.9.1 K3S_CLUSTER_SECRET=' + self.token + ' K3S_URL="https://' + master_ip + ':6443" sh /k3s_install.sh\n'
 
         return yaml_file + k3s_command
 
@@ -260,7 +258,7 @@ class ProvisionGoogle(object):
 
         master_addr = self.settings['master_node_ip'] + ':6443\n    insecure-skip-tls-verify: true'
   
-        updated_ip = master_addr.join(k3s_config.split('localhost:6443'))
+        updated_ip = master_addr.join(k3s_config.split('127.0.0.1:6443'))
         with open(write_path, 'w') as out_config:
             out_config.write(updated_ip)
 

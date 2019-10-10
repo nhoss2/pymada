@@ -170,7 +170,7 @@ def run_node_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
 
 
 '''
-requires: 
+requires:
     - provision_data.json
 '''
 @cli.command()
@@ -185,7 +185,7 @@ def add_url_task(url, json_metadata=None, master_url=None):
 
 
 '''
-requires: 
+requires:
     - provision_data.json
 '''
 @cli.command()
@@ -206,7 +206,7 @@ def stats(master_url=None):
 
 
 '''
-requires: 
+requires:
     - provision_data.json
 '''
 @cli.command()
@@ -223,7 +223,7 @@ def kube():
     pass
 
 '''
-requires: 
+requires:
     - k3s_config.json
 '''
 @kube.command()
