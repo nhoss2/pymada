@@ -2,13 +2,16 @@ import time
 import json
 from unittest.mock import patch
 from django.test import TestCase
+from django.contrib.auth.models import User
 from rest_framework.test import APIRequestFactory, APIClient
-from master_server.models import UrlTask, Agent, Runner
+from master_server.models import UrlTask, Agent, Runner, ErrorLog
 import control
 
 class MasterServerTestCase(TestCase):
 
     def setUp(self):
+
+        User.objects.create_user('pymadauser', None, None)
 
         default_runner = Runner.objects.create(
             contents="print('hello')",
@@ -37,18 +40,102 @@ class MasterServerTestCase(TestCase):
         assert 'contents' in res
         assert 'file_name' in res
     
+    def test_add_runner(self):
+        c = APIClient()
+        runner_info = {
+            'contents': 'test',
+            'file_name': 'test.py',
+            'file_type': 'python'
+        }
+        res = c.post('/register_runner/', runner_info, format='json')
+
+        assert res.status_code == 201
+    
     def test_register_agent(self):
         c = APIClient()
         res = c.post('/register_agent/', {
             'hostname': 'test-req',
-            'agent_url': 'http://testagent'
+            'agent_url': 'http://testagent',
+            'runner_num': 1,
         }, format='json')
 
+        assert res.status_code == 201
+        json_response = res.json()
+        assert 'id' in json_response
+        assert json_response['runner_num'] == 1
+    
+    def test_reconnect_agent(self):
+        c = APIClient()
+        agent_details = {
+            'hostname': 'reconnect-test',
+            'agent_url': 'http://reconnect',
+            'runner_num': 1
+        }
+
+        res = c.post('/register_agent/', agent_details, format='json')
+        assert res.status_code == 201
+
+        num_agents = len(Agent.objects.all())
+
+        # do call to register_agent again with same details and make sure a new
+        # agent doesnt get created
+        res = c.post('/register_agent/', agent_details, format='json')
         assert res.status_code == 200
+        assert num_agents == len(Agent.objects.all())
+
+    def test_add_url(self):
+        c = APIClient()
+        res = c.post('/urls/', {
+            'url': 'http://test'
+        })
+
+        assert res.status_code == 201
+        assert 'id' in res.json()
+
+    def test_get_results(self):
+        c = APIClient()
+        res = c.get('/urls/')
+
+        assert res.status_code == 200
+        assert type(res.json()) == list
+        assert 'url' in res.json()[0]
+
+    def test_save_results(self):
+        c = APIClient()
+        result_data = {
+            'url': 'http://0',
+            'task_result': '{"some":"data"}'
+        }
+
+        res = c.put('/urls/1/', result_data, format='json')
+        assert res.status_code == 200
+        assert UrlTask.objects.get(pk=1).task_result == '{"some":"data"}'
+
+    def test_add_error_log(self):
+        c = APIClient()
+        err_info = {
+            'message': 'this is an error',
+            'reporting_agent': 1,
+            'runner': ''
+        }
+
+        res = c.post('/log_error/', err_info, format='json')
+
+        assert res.status_code == 201
+        assert ErrorLog.objects.get(id=1).message == 'this is an error'
+
+    def test_get_error_log(self):
+        c = APIClient()
+        res = c.get('/log_error/')
+
+        assert res.status_code == 200
+        assert type(res.json()) == list
+
 
 
 class ControlTestCast(TestCase):
     def setUp(self):
+        User.objects.create_user('pymadauser', None, None)
 
         default_runner = Runner.objects.create(
             contents="print('hello')",
@@ -71,10 +158,14 @@ class ControlTestCast(TestCase):
 
 
     @patch('control.requests.post')
-    def test_control_assign(self, mock_post):
+    def test_control_single_loop(self, mock_post):
         for agent in Agent.objects.all():
-            assert agent.agent_state == 'IDLE'
-        
+            assert agent.agent_state == 'NO_RUNNER'
+
+            # assume agent has downloaded runner
+            agent.agent_state = 'IDLE'
+            agent.save()
+
         controller = control.Control()
         controller.loop()
 

@@ -69,7 +69,7 @@ class UrlSingle(EnvTokenAPIView):
         serializer = UrlTaskSerializer(task, data=request.data)
         if serializer.is_valid():
             serializer.save(task_state='COMPLETE')
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -89,7 +89,7 @@ class RegisterAgent(EnvTokenAPIView):
             if len(agent_search) == 0:
                 print('new agent', request.data)
                 serializer.save(last_contact=time.time())
-                return Response(serializer.data, status=status.HTTP_200_OK)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
             
             recorded_agent = agent_search[0]
             print('reconnect agent ' + str(recorded_agent.id))

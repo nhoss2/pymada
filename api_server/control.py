@@ -116,19 +116,6 @@ class Control(object):
             logging.warning('unable to contact ' + req_url)
             return (None, None)
 
-def add_test_data():
-    for i in range(5):
-        task = UrlTask.objects.create(url='http://' + str(i))
-        task.save()
-    
-    for i in range(1):
-        agent = Agent(
-            hostname=str('agent ' + str(i)),
-            agent_url='http://localhost:5001',
-            last_contact=time.time()
-        )
-
-        agent.save()
 
 def run():
     logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p',
@@ -136,6 +123,7 @@ def run():
 
     controller = Control()
 
+    # create a default user for use for the token auth
     if len(User.objects.filter(username='pymadauser')) == 0:
         User.objects.create_user('pymadauser',None,None)
     
