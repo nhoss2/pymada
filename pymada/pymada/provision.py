@@ -265,7 +265,7 @@ class ProvisionGoogle(object):
 
 def create_node_gc_mp(driver_info, node_info):
     try:
-        print('creating', node_info['name'])
+        print('creating:', node_info['name'])
         compute_engine = get_driver(Provider.GCE)
         driver = compute_engine(driver_info['user'], driver_info['auth'], project=driver_info['project'])
 

@@ -21,7 +21,7 @@ exports.getTask = async function(){
         }
     }
 
-    return await task_data;
+    return task_data;
 }
 
 exports.saveResult = async function(result){

@@ -109,19 +109,22 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
 
     print('done!')
 
+@cli.group()
+def run():
+    pass
 '''
 requires: 
     - provision_data.json
     - k3s_config.yaml
 '''
-@cli.command()
+@run.command()
 @click.argument('runner', type=click.Path(dir_okay=False, exists=True, readable=True))
 @click.argument('replicas', type=click.INT, default=1)
 @click.option('--packagejson', type=click.Path(dir_okay=False, exists=True, readable=True), default=None)
 @click.option('--master-url', default=None)
 @click.option('--no-kube-deploy', default=False, flag_value=True)
 @click.option('--no-token-auth', default=False, flag_value=True)
-def run_node_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
+def puppeteer(runner, replicas=1, packagejson=None, master_url=None,
                         no_kube_deploy=False, no_token_auth=False, config_path=None):
     
     if not no_kube_deploy:
@@ -218,18 +221,38 @@ def get_output(output_path):
             outputfile.write(results)
 
 @cli.group()
-#@click.options()
-def kube():
-    pass
+@click.option('--kube-config', default=None, type=click.File(),
+              help='kube config file, defaults to "k3s_config.yaml"')
+@click.pass_context
+def kube(ctx, kube_config=None):
+    ctx.ensure_object(dict)
+
+    if kube_config is None:
+        base_dir = os.getcwd()
+        kube_config = os.path.join(base_dir, 'k3s_config.yaml')
+
+    ctx.obj['kube_config'] = kube_config
 
 '''
 requires:
-    - k3s_config.json
+    - k3s_config.yaml
 '''
 @kube.command()
+@click.pass_context
 @click.option('--show-nodes', default=False, flag_value=True)
-def list_pods(show_nodes=False):
-    pod_list = get_pod_list()
+def pods(ctx, show_nodes=False):
+    '''
+    Show table of pods running on kubernetes
+    '''
+    kube_config = ctx.obj['kube_config']
+
+    if not os.path.exists(kube_config):
+        raise click.FileError(kube_config,
+        'File doesn\'t exist. "k3s_config.yaml" either needs to be in your ' +
+        'current working directory or you can specify a kube config file path with ' +
+        '--kube-config')
+
+    pod_list = get_pod_list(config_path=kube_config)
 
     table = []
     header = ['Name', 'Status', 'Restarts', 'Age']
@@ -256,12 +279,23 @@ def list_pods(show_nodes=False):
 
 '''
 requires:
-    - k3s_config.json
+    - k3s_config.yaml
 '''
 @kube.command()
+@click.pass_context
 @click.argument('pod_name')
-def get_logs(pod_name):
-    pod_names = [p['name'] for p in get_pod_list()]
+def logs(ctx, pod_name):
+    '''
+    Show logs for POD_NAME
+    '''
+    kube_config = ctx.obj['kube_config']
+    if not os.path.exists(kube_config):
+        raise click.FileError(kube_config,
+        'File doesn\'t exist. "k3s_config.yaml" either needs to be in your ' +
+        'current working directory or you can specify a kube config file path with ' +
+        '--kube-config')
+
+    pod_names = [p['name'] for p in get_pod_list(config_path=kube_config)]
 
     if pod_name not in pod_names:
         click.echo('error: pod name not found')
@@ -271,11 +305,22 @@ def get_logs(pod_name):
 
 '''
 requires:
-    - k3s_config.json
+    - k3s_config.yaml
 '''
 @kube.command()
-def delete_deployments():
-    delete_all_deployments()
+@click.pass_context
+def delete_deployments(ctx):
+    '''
+    Delete the master api server deployment and all agent deployments
+    '''
+    kube_config = ctx.obj['kube_config']
+    if not os.path.exists(kube_config):
+        raise click.FileError(kube_config,
+        'File doesn\'t exist. "k3s_config.yaml" either needs to be in your ' +
+        'current working directory or you can specify a kube config file path with ' +
+        '--kube-config')
+
+    delete_all_deployments(config_path=kube_config)
 
     print('waiting for deployments to terminate')
 
