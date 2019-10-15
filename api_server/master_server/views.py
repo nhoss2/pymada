@@ -8,6 +8,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
 from django.http import Http404, JsonResponse
+from PIL import Image
 from master_server.models import UrlTask, Agent, Runner, ErrorLog
 from master_server.serializers import UrlTaskSerializer, AgentSerializer, RunnerSerializer, ErrorLogSerializer
 
@@ -65,6 +66,10 @@ class UrlSingle(EnvTokenAPIView):
 
     def put(self, request, pk, format=None):
         task = self.get_task(pk)
+
+        if 'media' in request.data:
+            request.data['screenshot'] = request.data['media']
+
 
         serializer = UrlTaskSerializer(task, data=request.data)
         if serializer.is_valid():

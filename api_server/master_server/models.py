@@ -14,6 +14,7 @@ class UrlTask(models.Model):
     assigned_agent = models.ForeignKey('Agent', on_delete=models.CASCADE, null=True)
     fail_num = models.IntegerField(default=0)
     start_time = models.FloatField(default=0)
+    screenshot = models.ImageField(null=True)
 
 class Agent(models.Model):
     agent_states = (
