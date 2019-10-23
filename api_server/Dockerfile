@@ -9,8 +9,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . ./api_server/
 
+WORKDIR /usr/src/api_server
+
+RUN rm -f db.sqlite3 && python manage.py makemigrations && python manage.py migrate
+
 EXPOSE 8000
 
-WORKDIR /usr/src/api_server
 
 CMD ["python", "control.py"]
