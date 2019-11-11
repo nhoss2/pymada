@@ -15,7 +15,8 @@ COPY requirements.txt package.json ./
 
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
 RUN npm install
-RUN npm install node-fetch@^2.6.0
+RUN npm install request@^2.88.0
+RUN npm install request-promise@^4.2.4
 
 COPY agent_server.py client.py wsgi.py Makefile pymada_client.js __init__.py ./
 

@@ -42,7 +42,7 @@ class Agent(object):
         if req_url is None:
             req_url = '/register_agent/'
 
-        register_response = self._request_master(req_url, 'POST', {
+        register_response = self._request_master(req_url, 'POST', json_data={
             'hostname': socket.gethostname(),
             'agent_url': self_url,
             'runner_num': self.runner_num
@@ -205,20 +205,37 @@ class Agent(object):
             return err_msg
         else:
             return r.json()
+    
+    def save_screenshot(self, screenshot, filename, req_url=None):
+        if req_url is None:
+            req_url = '/screenshots/'
+        
+        r = self._request_master(req_url, 'POST',
+                                 files={'screenshot': (filename, screenshot),
+                                        'task': ('', self.task['id'])})
 
-    def _send_request(self, req_url, method, json_data=None, headers={}, _num_tries=0):
+        if not r.ok:
+            err_msg = r.json()
+            return err_msg
+        else:
+            return r.json()
+
+    def _send_request(self, req_url, method, json_data=None, headers={}, 
+                      files={}, _num_tries=0):
         try:
-            response = requests.request(method, req_url, json=json_data, headers=headers, timeout=60)
+            response = requests.request(method, req_url, json=json_data, 
+            headers=headers, files=files, timeout=60)
             return response
         except (requests.ConnectionError, requests.Timeout) as e:
             if _num_tries < 10:
                 logging.warning('unable to contact, retrying ' + req_url)
                 time.sleep(3)
-                return self._send_request(req_url, method, json_data=json_data, headers=headers, _num_tries=_num_tries+1)
+                return self._send_request(req_url, method, json_data=json_data, 
+                    files=files, headers=headers, _num_tries=_num_tries+1)
             else:
                 raise e
         
-    def _request_master(self, url, method, json_data=None, master_url=None):
+    def _request_master(self, url, method, json_data=None, files={}, master_url=None):
         if master_url is not None:
             req_url = master_url + url
         else:
@@ -231,8 +248,7 @@ class Agent(object):
                 'pymada_token_auth': self.auth_token
             }
 
-        return self._send_request(req_url, method, json_data, headers=headers)
-
+        return self._send_request(req_url, method, json_data, headers=headers, files=files)
 
 
 class Runner(object):
@@ -274,7 +290,6 @@ class Runner(object):
             self.process = None
             self.last_run_code = poll_result
             return self.states.IDLE
-        
     
     def kill(self):
         if self.process is not None:
@@ -313,7 +328,6 @@ def gen_flask_app():
         agent = Agent('http://localhost:8000', agent_url=agent_url, runner_num=runner_num, auth_token=auth_token)
 
     
-
     @flask_app.route('/get_task', methods=['POST'])
     def get_task():
         return json.jsonify(agent.get_task())
@@ -321,9 +335,16 @@ def gen_flask_app():
     @flask_app.route('/save_results', methods=['POST'])
     def save_results():
         json_data = request.get_json()
-        result = agent.save_task_results(json_data)
+        response = agent.save_task_results(json_data)
 
-        return json.jsonify(result)
+        return json.jsonify(response)
+    
+    @flask_app.route('/save_screenshot', methods=['POST'])
+    def save_screenshot():
+        screenshot = request.files['screenshot']
+        response = agent.save_screenshot(screenshot.read(), screenshot.filename)
+        print('res', response)
+        return json.jsonify(response)
 
     @flask_app.route('/assign_runner', methods=['POST'])
     def assign_runner():

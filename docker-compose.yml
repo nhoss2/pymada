@@ -26,17 +26,17 @@ services:
       LOG_LEVEL: "DEBUG"
       #PYMADA_TOKEN_AUTH: "testing"
   
-  agent2:
-    image: "nhoss2/pymada-node-puppeteer"
-    command: 'gunicorn "wsgi:app" -b 0.0.0.0:5001'
-    depends_on:
-      - master
-    ports:
-      - "5002:5001"
-    environment:
-      AGENT_ADDR: "agent2"
-      MASTER_URL: "http://master:8000"
-      AGENT_PORT: "5001"
-      PYTHONUNBUFFERED: 1
-      LOG_LEVEL: "DEBUG"
-      #PYMADA_TOKEN_AUTH: "testing"
+#  agent2:
+#    image: "nhoss2/pymada-node-puppeteer"
+#    command: 'gunicorn "wsgi:app" -b 0.0.0.0:5001'
+#    depends_on:
+#      - master
+#    ports:
+#      - "5002:5001"
+#    environment:
+#      AGENT_ADDR: "agent2"
+#      MASTER_URL: "http://master:8000"
+#      AGENT_PORT: "5001"
+#      PYTHONUNBUFFERED: 1
+#      LOG_LEVEL: "DEBUG"
+#      #PYMADA_TOKEN_AUTH: "testing"

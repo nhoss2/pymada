@@ -7,10 +7,11 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
-from django.http import Http404, JsonResponse
+from django.http import Http404, JsonResponse, HttpResponse
 from PIL import Image
-from master_server.models import UrlTask, Agent, Runner, ErrorLog
-from master_server.serializers import UrlTaskSerializer, AgentSerializer, RunnerSerializer, ErrorLogSerializer
+from master_server.models import UrlTask, Agent, Runner, ErrorLog, Screenshot
+from master_server.serializers import (UrlTaskSerializer, AgentSerializer,
+            RunnerSerializer, ErrorLogSerializer, ScreenshotSerializer)
 
 
 ''' 
@@ -66,10 +67,6 @@ class UrlSingle(EnvTokenAPIView):
 
     def put(self, request, pk, format=None):
         task = self.get_task(pk)
-
-        if 'media' in request.data:
-            request.data['screenshot'] = request.data['media']
-
 
         serializer = UrlTaskSerializer(task, data=request.data)
         if serializer.is_valid():
@@ -150,6 +147,48 @@ class ErrorLogs(EnvTokenAPIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class Screenshots(EnvTokenAPIView):
+    def get(self, request, format=None):
+        screenshots = Screenshot.objects.all()
+        serializer = ScreenshotSerializer(screenshots, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        serializer = ScreenshotSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class TaskScreenshots(EnvTokenAPIView):
+    def get(self, request, task_id, format=None):
+        print('task id', task_id)
+        result = Screenshot.objects.filter(task=task_id)
+
+        print('result', result)
+
+        if len(result) == 0:
+            raise Http404
+
+        serializer = ScreenshotSerializer(result, many=True)
+        return Response(serializer.data)
+
+class ScreenshotSingle(EnvTokenAPIView):
+
+    def get(self, request, screenshot_id, format=None):
+        screenshot_data = Screenshot.objects.get(pk=screenshot_id)
+
+        img = screenshot_data.screenshot
+        img_extension = img.name.split('.')[-1].lower()
+        mime_type = ''
+
+        if img_extension == 'png':
+            mime_type = 'image/png'
+        elif img_extension in ['jpg', 'jpeg']:
+            mime_type = 'image/jpeg'
+
+        return HttpResponse(img, content_type=mime_type)
 
 class GetStats(EnvTokenAPIView):
     def get(self, request, format=None):

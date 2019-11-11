@@ -1,4 +1,5 @@
-const fetch = require('node-fetch');
+const fs = require('fs');
+const rp = require('request-promise');
 
 if ('AGENT_PORT' in process.env){
     exports.host = "http://localhost:" + process.env['AGENT_PORT'];
@@ -8,8 +9,9 @@ if ('AGENT_PORT' in process.env){
 
 exports.getTask = async function(){
     const reqUrl = exports.host + '/get_task';
-    let task_data = await fetch(reqUrl, {method: 'POST'});
-    task_data = await task_data.json();
+    //let task_data = await fetch(reqUrl, {method: 'POST'});
+    //task_data = await task_data.json();
+    let task_data = await rp({uri: reqUrl, method: 'POST', json: true});
 
     if (typeof(task_data['json_metadata']) == 'string'){
         try{
@@ -26,36 +28,56 @@ exports.getTask = async function(){
 
 exports.saveResult = async function(result){
     const reqUrl = exports.host + '/save_results';
-    const response = await fetch(reqUrl, {
+    const response = await rp({
+        uri: reqUrl,
         method: 'POST',
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify(result)
+        body: result,
+        json: true
     });
-    return await response.json();
+    return response;
 }
 
 exports.addUrl = async function(url, jsonMetadata=null){
     const reqUrl = exports.host + '/add_url';
-    const response = await fetch(reqUrl, {
+    const response = await rp({
+        uri: reqUrl,
         method: 'POST',
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({'url': url, 'json_metadata': jsonMetadata})
+        body: {'url': url, 'json_metadata': jsonMetadata},
+        json: true
     });
-    return await response.json();
+    return response;
 }
 
 exports.logError = async function(errorMsg){
-    const reqUrl = exports.host + '/log_error'
-    const response = await fetch(reqUrl, {
+    const reqUrl = exports.host + '/log_error';
+    const response = await rp({
+        uri: reqUrl,
         method: 'POST',
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({'message': errorMsg})
+        body: {'message': errorMsg},
+        json: true
     })
-    return await response.json();
+    return response;
+}
+
+exports.saveScreenshot = async function(screenshotPath){
+    const reqUrl = exports.host + '/save_screenshot';
+    const response = await rp({
+        uri: reqUrl,
+        method: 'POST',
+        formData: {
+            screenshot: fs.createReadStream(screenshotPath)
+        },
+        json: true
+    });
+
+    return response;
 }

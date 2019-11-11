@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from master_server.models import UrlTask, Agent, Runner, ErrorLog
+from master_server.models import UrlTask, Agent, Runner, ErrorLog, Screenshot
 
 class UrlTaskSerializer(serializers.ModelSerializer):
     task_result = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -40,3 +40,10 @@ class ErrorLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = ErrorLog
         fields = ('message', 'reporting_agent', 'runner', 'timestamp')
+
+class ScreenshotSerializer(serializers.ModelSerializer):
+    screenshot = serializers.ImageField(use_url=True)
+
+    class Meta:
+        model = Screenshot
+        fields = ('task', 'timestamp', 'screenshot')

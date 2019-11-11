@@ -14,7 +14,6 @@ class UrlTask(models.Model):
     assigned_agent = models.ForeignKey('Agent', on_delete=models.CASCADE, null=True)
     fail_num = models.IntegerField(default=0)
     start_time = models.FloatField(default=0)
-    screenshot = models.ImageField(null=True)
 
 class Agent(models.Model):
     agent_states = (
@@ -43,3 +42,8 @@ class ErrorLog(models.Model):
     reporting_agent = models.ForeignKey('Agent', on_delete=models.CASCADE, null=True)
     runner = models.ForeignKey('Runner', on_delete=models.CASCADE, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+
+class Screenshot(models.Model):
+    task = models.ForeignKey('UrlTask', on_delete=models.CASCADE, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    screenshot = models.ImageField()
