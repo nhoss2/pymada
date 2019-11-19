@@ -11,7 +11,8 @@ from .kube import (run_master_server, run_agent_deployment, get_deployment_statu
                    delete_all_deployments, get_pod_list, get_pod_logs)
 from .master_client import (read_provision_settings, request_master, add_runner, 
                             add_url, get_results, list_screenshots,
-                            list_screenshots_by_task, download_screenshot)
+                            list_screenshots_by_task, download_screenshot,
+                            get_url_tasks)
 
 '''
 things to do:
@@ -405,13 +406,24 @@ def get_screenshot(screenshot_id, output_dir=None):
     
     click.echo('written: ' + output_path)
 
+'''
+requires:
+    - provision_data.json
+'''
+@info.command()
+@click.argument('min_id', required=False, type=click.INT)
+@click.argument('max_id', required=False, type=click.INT)
+def tasks(min_id=None, max_id=None):
+    if min_id != None and max_id is None or min_id is None and max_id != None:
+        print('both min id and max id is required')
+        return
 
-@click.argument('output_path', type=click.Path())
-def get_output(output_path):
-    results = get_results()
-    if results is not None:
-        with open(output_path, 'w') as outputfile:
-            outputfile.write(results)
+    if min_id != None and max_id != None:
+        url_tasks = get_url_tasks(min_id=min_id, max_id=max_id)
+    else:
+        url_tasks = get_url_tasks()
+    
+    click.echo(json.dumps(url_tasks, indent='  '))
 
 if __name__ == '__main__':
     cli()

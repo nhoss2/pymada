@@ -129,3 +129,15 @@ def download_screenshot(screenshot_id, master_url=None):
         return response.content
     else:
         print(response.text)
+
+def get_url_tasks(min_id=None, max_id=None, master_url=None):
+    req_url = '/urls/'
+    if min_id != None and max_id != None:
+        req_url += '?min_id=' + str(min_id) + '&max_id=' + str(max_id)
+
+    response = request_master(req_url, 'GET', master_url=master_url)
+
+    if response.ok:
+        return response.json()
+    else:
+        print(response.text)
