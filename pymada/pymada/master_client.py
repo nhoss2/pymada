@@ -97,3 +97,35 @@ def get_results(master_url=None):
         return response.text
     else:
         print(response.text)
+
+def list_screenshots(min_id=None, max_id=None, master_url=None):
+    req_url = '/screenshots/'
+    if min_id != None and max_id != None:
+        req_url += '?min_id=' + str(min_id) + '&max_id=' + str(max_id)
+
+    response = request_master(req_url, 'GET', master_url=master_url)
+
+    if response.ok:
+        return response.json()
+    else:
+        print(response.text)
+
+def list_screenshots_by_task(task_id, master_url=None):
+    req_url = '/task_screenshots/' + str(task_id) + '/'
+
+    response = request_master(req_url, 'GET', master_url=master_url)
+
+    if response.ok or response.status_code == 404:
+        return response.json()
+    else:
+        print(response.text)
+
+def download_screenshot(screenshot_id, master_url=None):
+    req_url = '/screenshots/' + str(screenshot_id) + '/'
+
+    response = request_master(req_url, 'GET', master_url=master_url)
+
+    if response.ok:
+        return response.content
+    else:
+        print(response.text)

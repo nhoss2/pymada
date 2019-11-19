@@ -44,7 +44,12 @@ class EnvTokenAPIView(APIView):
 class UrlList(EnvTokenAPIView):
 
     def get(self, request, format=None):
-        urls = UrlTask.objects.all()
+        if 'min_id' in request.query_params and 'max_id' in request.query_params:
+            min_id = request.query_params['min_id']
+            max_id = request.query_params['max_id']
+            urls = UrlTask.objects.filter(pk__gte=min_id, pk__lte=max_id)
+        else:
+            urls = UrlTask.objects.all()
         serializer = UrlTaskSerializer(urls, many=True)
         return Response(serializer.data)
 
@@ -150,7 +155,12 @@ class ErrorLogs(EnvTokenAPIView):
 
 class Screenshots(EnvTokenAPIView):
     def get(self, request, format=None):
-        screenshots = Screenshot.objects.all()
+        if 'min_id' in request.query_params and 'max_id' in request.query_params:
+            min_id = request.query_params['min_id']
+            max_id = request.query_params['max_id']
+            screenshots = Screenshot.objects.filter(pk__gte=min_id, pk__lte=max_id)
+        else:
+            screenshots = Screenshot.objects.all()
         serializer = ScreenshotSerializer(screenshots, many=True)
         return Response(serializer.data)
 

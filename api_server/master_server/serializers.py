@@ -46,4 +46,4 @@ class ScreenshotSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Screenshot
-        fields = ('task', 'timestamp', 'screenshot')
+        fields = ('id', 'task', 'timestamp', 'screenshot')

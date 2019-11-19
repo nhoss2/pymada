@@ -10,7 +10,8 @@ from .provision import ProvisionGoogle
 from .kube import (run_master_server, run_agent_deployment, get_deployment_status,
                    delete_all_deployments, get_pod_list, get_pod_logs)
 from .master_client import (read_provision_settings, request_master, add_runner, 
-                            add_url, get_results)
+                            add_url, get_results, list_screenshots,
+                            list_screenshots_by_task, download_screenshot)
 
 '''
 things to do:
@@ -342,6 +343,75 @@ def delete_deployments(ctx):
 
     print('deleted')
 
+@cli.group()
+def info():
+    pass
+
+'''
+requires:
+    - provision_data.json
+'''
+@info.command()
+@click.argument('min_id', required=False, type=click.INT)
+@click.argument('max_id', required=False, type=click.INT)
+def screenshots(min_id=None, max_id=None):
+    if min_id != None and max_id is None or min_id is None and max_id != None:
+        print('both min id and max id is required')
+        return
+
+    if min_id != None and max_id != None:
+        screenshot_data = list_screenshots(min_id=min_id, max_id=max_id)
+    else:
+        screenshot_data = list_screenshots()
+    
+    click.echo(json.dumps(screenshot_data, indent='  '))
+    
+
+'''
+requires:
+    - provision_data.json
+'''
+@info.command()
+@click.argument('task_id', required=True, type=click.INT)
+def task_screenshot(task_id):
+    screenshot_data = list_screenshots_by_task(task_id)
+
+    click.echo(json.dumps(screenshot_data, indent='  '))
+
+'''
+requires:
+    - provision_data.json
+'''
+@info.command()
+@click.argument('screenshot_id', required=True, type=click.INT)
+@click.argument('output_dir', type=click.Path(), required=False)
+def get_screenshot(screenshot_id, output_dir=None):
+    screenshot_info = list_screenshots(min_id=screenshot_id, max_id=screenshot_id)
+
+    if screenshot_info is None:
+        click.echo('error getting screenshot data')
+        return
+    
+    screenshot_name = screenshot_info[0]['screenshot']
+
+    screenshot = download_screenshot(screenshot_id)
+
+    if output_dir is None:
+        output_path = os.path.join(os.getcwd(), screenshot_name)
+    else:
+        output_path = os.path.join(output_dir, screenshot_name)
+    with open(output_path, 'wb') as sfile:
+        sfile.write(screenshot)
+    
+    click.echo('written: ' + output_path)
+
+
+@click.argument('output_path', type=click.Path())
+def get_output(output_path):
+    results = get_results()
+    if results is not None:
+        with open(output_path, 'w') as outputfile:
+            outputfile.write(results)
 
 if __name__ == '__main__':
     cli()
