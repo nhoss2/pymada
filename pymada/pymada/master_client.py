@@ -3,7 +3,6 @@ import json
 import time
 import requests
 
-from .provision import ProvisionGoogle
 from .kube import run_master_server, run_agent_deployment, get_deployment_status
 
 def read_provision_settings(settings_path=None):

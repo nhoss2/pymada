@@ -6,7 +6,7 @@ import click
 import requests
 from tabulate import tabulate
 
-from .provision import ProvisionGoogle
+from .provision import ProvisionGoogleCloud, ProvisionDigitalOcean
 from .kube import (run_master_server, run_agent_deployment, get_deployment_status,
                    delete_all_deployments, get_pod_list, get_pod_logs)
 from .master_client import (read_provision_settings, request_master, add_runner, 
@@ -92,21 +92,25 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
     
     #TODO: checks for cloud_api_auth.json file
 
-    gc = ProvisionGoogle()
+    #gc = ProvisionGoogle()
+    base_path = os.getcwd()
+    gc = ProvisionGoogleCloud(
+        'compute@nafis-236908.iam.gserviceaccount.com',
+        os.path.join(base_path, 'nafis_compute_-236908-a9e5d90dc318.json'),
+        'nafis-236908', 'g1-small', 'ubuntu-1804'
+    )
+
     gc.create_master(preemptible=preempt_master)
     gc.create_agent(num_agents, preemptible=preempt_agents)
     print('waiting for kubernetes installation on master')
     config = gc.get_k3s_config()
+
     if config == "kube conf doesnt exist":
         raise Exception("There has been an error with installing kubernetes")
 
     if config_path is None:
         config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
     
-    if not os.path.exists(config_path):
-        print('error: kubernetes config file not found. Searching for: ' + config_path)
-        return
-
     gc.write_modify_k3s_config(config, write_path=config_path)
 
     print('done!')

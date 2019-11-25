@@ -27,11 +27,11 @@ class Server(BaseHTTPRequestHandler):
         self.end_headers()
 
         path_elems = self.path.split('/')
-        print(path_elems)
+        print('bootstrap.py', path_elems)
 
         if path_elems[1] == route:
 
-            print('route match')
+            print('bootstrap.py route match')
 
             run_install(path_elems[2])
 
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     httpd = HTTPServer(('0.0.0.0', 30200), Server)
 
     try:
-        print('starting server')
+        print('bootstrap.py starting server')
         httpd.serve_forever()
     except KeyboardInterrupt:
         pass
