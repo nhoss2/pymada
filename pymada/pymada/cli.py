@@ -4,6 +4,7 @@ import time
 import shutil
 import click
 import requests
+import yaml
 from tabulate import tabulate
 
 from .provision import ProvisionGoogleCloud, ProvisionDigitalOcean
@@ -92,12 +93,17 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
     
     #TODO: checks for cloud_api_auth.json file
 
-    #gc = ProvisionGoogle()
     base_path = os.getcwd()
+    pymada_settings_path = os.path.join(base_path, 'pymada_settings.yaml')
+    with open(pymada_settings_path) as settingsfile:
+        pymada_settings = yaml.load(settingsfile.read(), Loader=yaml.FullLoader)
+    
     gc = ProvisionGoogleCloud(
-        'compute@nafis-236908.iam.gserviceaccount.com',
-        os.path.join(base_path, 'nafis_compute_-236908-a9e5d90dc318.json'),
-        'nafis-236908', 'g1-small', 'ubuntu-1804'
+        pymada_settings['provision']['google_cloud']['user'],
+        pymada_settings['provision']['google_cloud']['auth_file'],
+        pymada_settings['provision']['google_cloud']['project'],
+        pymada_settings['provision']['instance']['size'],
+        pymada_settings['provision']['instance']['image'],
     )
 
     gc.create_master(preemptible=preempt_master)
