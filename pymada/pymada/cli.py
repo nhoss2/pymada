@@ -7,7 +7,8 @@ import requests
 import yaml
 from tabulate import tabulate
 
-from .provision import ProvisionGoogleCloud, ProvisionDigitalOcean
+from .provision import (ProvisionGoogleCloud, ProvisionDigitalOcean,
+                        ProvisionAWS)
 from .kube import (run_master_server, run_agent_deployment, get_deployment_status,
                    delete_all_deployments, get_pod_list, get_pod_logs)
 from .master_client import (read_provision_settings, request_master, add_runner, 
@@ -98,12 +99,25 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
     with open(pymada_settings_path) as settingsfile:
         pymada_settings = yaml.load(settingsfile.read(), Loader=yaml.FullLoader)
     
+    '''
     gc = ProvisionGoogleCloud(
         pymada_settings['provision']['google_cloud']['user'],
         pymada_settings['provision']['google_cloud']['auth_file'],
         pymada_settings['provision']['google_cloud']['project'],
         pymada_settings['provision']['instance']['size'],
         pymada_settings['provision']['instance']['image'],
+    )
+    '''
+
+    gc = ProvisionAWS(
+        pymada_settings['provision']['aws']['access_id'],
+        pymada_settings['provision']['aws']['secret_key'],
+        pymada_settings['provision']['aws']['region'],
+        pymada_settings['provision']['instance']['size'],
+        pymada_settings['provision']['instance']['image'],
+        pymada_settings['provision']['instance']['location'],
+        pymada_settings['provision']['instance']['subnet'],
+        pymada_settings['provision']['instance']['image_owner'],
     )
 
     gc.create_master(preemptible=preempt_master)

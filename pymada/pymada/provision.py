@@ -111,12 +111,10 @@ class Provision(object):
         self.node_suffix = uuid.uuid4().hex[:8]
         self.settings = None
     
-    def create_node(self, name, size, image, location=None, 
-                    user_data=None, preemptible=False):
+    def create_node(self, name, user_data=None, preemptible=False):
         raise NotImplementedError()
 
-    def create_node_mp(self, name_list, size, image, location=None,
-                    user_data=None, preemptible=False):
+    def create_node_mp(self, name_list, user_data=None, preemptible=False):
         raise NotImplementedError()
 
     def create_master(self, preemptible=False):
@@ -124,9 +122,6 @@ class Provision(object):
 
         self.create_node(
             name=master_node_name,
-            size=self.instance['size'],
-            image=self.instance['image'],
-            location=self.instance['location'],
             user_data=self.ccg.gen_master(),
             preemptible=preemptible
         )
@@ -163,8 +158,7 @@ class Provision(object):
         for i in range(num):
             agent_node_names.append('pymada-agent-' + str(i) + '-' + self.node_suffix)
         
-        self.create_node_mp(agent_node_names, self.instance['size'], 
-                            self.instance['image'], self.instance['location'],
+        self.create_node_mp(agent_node_names,
                             user_data=self.ccg.gen_node(self.settings['master_node_ip']),
                             preemptible=preemptible)
         
@@ -263,28 +257,24 @@ class ProvisionDigitalOcean(Provision):
 
         super().__init__(instance, driver_info, driver)
     
-    def create_node(self, name, size, image, location=None, 
-                    user_data=None, preemptible=False):
-
+    def create_node(self, name, user_data=None, preemptible=False):
         node_info = {
             'name': name,
-            'size': size,
-            'image': image,
-            'location': location,
+            'size': self.instance['size'],
+            'image': self.instance['image'],
+            'location': self.instance['location'],
             'ex_user_data': user_data
         }
         create_node_digial_ocean_mp(self.driver_info, node_info)
 
-    def create_node_mp(self, name_list, size, image, location=None,
-                       user_data=None, preemptible=False):
-        
+    def create_node_mp(self, name_list, user_data=None, preemptible=False):
         with Pool(processes=10) as pool:
             for node_name in name_list:
                 node_info = {
                     'name': node_name,
-                    'size': size,
-                    'image': image,
-                    'location': location,
+                    'size': self.instance['size'],
+                    'image': self.instance['image'],
+                    'location': self.instance['location'],
                     'ex_user_data': user_data,
                 }
 
@@ -316,29 +306,26 @@ class ProvisionGoogleCloud(Provision):
 
         super().__init__(instance, driver_info, driver)
     
-    def create_node(self, name, size, image, location=None, 
-                    user_data=None, preemptible=False):
-
+    def create_node(self, name, user_data=None, preemptible=False):
         node_info = {
             'name': name,
-            'size': size,
-            'image': image,
-            'location': location,
+            'size': self.instance['size'],
+            'image': self.instance['image'],
+            'location': self.instance['location'],
             'ex_metadata': {'user-data': user_data},
             'ex_preemptible': preemptible
         }
         create_node_gc_mp(self.driver_info, node_info)
 
-    def create_node_mp(self, name_list, size, image, location=None,
-                       user_data=None, preemptible=False):
+    def create_node_mp(self, name_list, user_data=None, preemptible=False):
         
         with Pool(processes=10) as pool:
             for node_name in name_list:
                 node_info = {
                     'name': node_name,
-                    'size': size,
-                    'image': image,
-                    'location': location,
+                    'size': self.instance['size'],
+                    'image': self.instance['image'],
+                    'location': self.instance['location'],
                     'ex_metadata': {'user-data': user_data},
                     'ex_preemptible': preemptible
                 }
@@ -349,6 +336,52 @@ class ProvisionGoogleCloud(Provision):
             pool.close()
             pool.join()
 
+
+class ProvisionAWS(Provision):
+
+    def __init__(self, access_id, secret_key, region, node_size, node_image,
+                 node_location, node_subnet, node_image_owner=None):
+
+        aws_driver = get_driver(Provider.EC2)
+
+        driver_info = {
+            'access_id': access_id,
+            'secret_key': secret_key,
+            'region': region
+        }
+
+        driver = aws_driver(access_id, secret_key, region=region)
+
+        instance = {
+            'size': node_size,
+            'image': node_image,
+            'image_owner': node_image_owner,
+            'location': node_location,
+            'subnet': node_subnet
+        }
+
+        super().__init__(instance, driver_info, driver)
+
+    def create_node(self, name, user_data=None, preemptible=False):
+
+        node_info = self.instance
+        node_info['name'] = name
+        node_info['ex_userdata'] = user_data
+        create_node_aws_mp(self.driver_info, node_info)
+
+    def create_node_mp(self, name_list, user_data=None, preemptible=False):
+
+        with Pool(processes=10) as pool:
+            for node_name in name_list:
+                node_info = self.instance
+                node_info['name'] = node_name
+                node_info['ex_userdata'] = user_data
+
+                pool.apply_async(create_node_aws_mp,
+                                 (self.driver_info, node_info))
+
+            pool.close()
+            pool.join()
 
 
 def create_node_gc_mp(driver_info, node_info):
@@ -401,176 +434,59 @@ def create_node_digial_ocean_mp(driver_info, node_info):
 
         raise e
 
-'''
-class ProvisionGoogle(object):
+def create_node_aws_mp(driver_info, node_info):
+    try:
+        print('creating:', node_info['name'])
+        provider = get_driver(Provider.EC2)
 
-    def __init__(self):
-        self.instance = {
-            'size': 'g1-small',
-            'image': 'ubuntu-1804',
-            'location': 'australia-southeast1-b'
-        }
 
-        base_path = os.getcwd()
-
-        self.driver_info = {
-            'user': 'compute@nafis-236908.iam.gserviceaccount.com',
-            'auth': os.path.join(base_path, 'nafis_compute_-236908-a9e5d90dc318.json'),
-            'project': 'nafis-236908'
-        }
-
-        self.ccg = CloudConfigGen()
-        self.node_suffix = uuid.uuid4().hex[:8]
-        self.settings = None
-
-        compute_engine = get_driver(Provider.GCE)
-
-        self.driver = compute_engine(
-            self.driver_info['user'],
-            self.driver_info['auth'],
-            project=self.driver_info['project']
-        )
-
-    def create_master(self, preemptible=False):
-        master_node_name = 'pymada-master-' + self.node_suffix
-        print('creating:', master_node_name)
-
-        self.driver.create_node(
-            name=master_node_name,
-            size=self.instance['size'],
-            image=self.instance['image'],
-            location=self.instance['location'],
-            ex_metadata={'user-data': self.ccg.gen_master()},
-            ex_preemptible=preemptible
-        )
-
-        self.settings = {
-            'master_node_name': master_node_name,
-            'master_node_ip': '',
-            'token': self.ccg.token,
-            'agents': [],
-            'pymada_auth_token': self.ccg.gen_token(30)
-        }
-
-        self.save_settings()
-
-        while True:
-            master_node = get_node(self.driver, master_node_name)
-            if len(master_node.public_ips) > 0:
-                self.settings['master_node_ip'] = master_node.public_ips[0]
-                print('master ip:', master_node.public_ips[0])
-                break
-
-            time.sleep(1)
+        driver = provider(driver_info['access_id'],
+                          driver_info['secret_key'],
+                          region=driver_info['region'])
         
-        self.save_settings()
 
-    def create_agent(self, num, preemptible=False):
-        if self.settings is None:
-            self.settings = self.load_settings()
-
-            if 'token' in self.settings:
-                self.ccg = CloudConfigGen(self.settings['token'])
-
-        with Pool(processes=10) as pool:
-            for i in range(num):
-                agent_node_name = 'pymada-agent-' + str(i) + '-' + self.node_suffix
-
-                node_info = {
-                    'name': agent_node_name,
-                    'size': self.instance['size'],
-                    'image': self.instance['image'],
-                    #'location': self.instance['location'],
-                    'ex_metadata': {'user-data': self.ccg.gen_node(self.settings['master_node_ip'])},
-                    'ex_preemptible': preemptible
-                }
-
-                pool.apply_async(create_node_gc_mp, (self.driver_info, node_info))
-
-                self.settings['agents'].append(agent_node_name)
-
-            pool.close()
-            pool.join()
+        if 'location' in node_info and node_info['location'] is not None:
+            node_location = get_location(driver, node_info['location'])
+        else:
+            node_location = random.choice(driver.list_locations())
         
-        self.save_settings()
+        if 'image_owner' in node_info and node_info['image_owner'] is not None:
+            image_list = driver.list_images(
+                location=node_location,
+                ex_owner=node_info['image_owner']
+            )
+        else:
+            image_list = driver.list_images(
+                location=node_location
+            )
 
-    def delete_all(self):
-        if self.settings is None:
-            self.settings = self.load_settings()
-
-        if 'master_node_name' in self.settings:
-            node = get_node(self.driver, self.settings['master_node_name'])
-            print('destroying:', node.name)
-            self.driver.destroy_node(node)
-            del(self.settings['master_node_name'])
-            del(self.settings['master_node_ip'])
+        selected_image = None
+        for image in image_list:
+            if image.name == node_info['image']:
+                selected_image = image
             
-            self.save_settings()
+        subnet = driver.ex_list_subnets([node_info['subnet']])[0]
 
-        if 'agents' in self.settings:
-            for node_name in self.settings['agents']:
-                node = get_node(self.driver, node_name)
-                print('destroying:', node.name)
-                self.driver.destroy_node(node)
+        driver.create_node(
+            name=node_info['name'],
+            size=get_size(driver, node_info['size']),
+            image=selected_image,
+            location=node_location,
+            ex_subnet=subnet
+        )
+    except Exception as e:
+        traceback.print_exc()
 
-            del(self.settings['agents'])
-            self.save_settings()
+        raise e
 
-    def save_settings(self, settings_file=None):
-        if settings_file is None:
-            file_dir = os.getcwd()
-            settings_file = os.path.join(file_dir, 'provision_data.json')
-        with open(settings_file, 'w') as jsonfile:
-            json.dump(self.settings, jsonfile)
-
-    def load_settings(self, settings_file=None):
-        if settings_file is None:
-            file_dir = os.getcwd()
-            settings_file = os.path.join(file_dir, 'provision_data.json')
-        if os.path.exists(settings_file):
-            with open(settings_file) as jsonfile:
-                return json.load(jsonfile)
-    
-    def get_k3s_config(self, num_tries=0):
-        if self.ccg.bootstrap_token is None:
-            print('unable to get k3s config, no token generated')
-            return
-        
-        req_url = 'http://' + self.settings['master_node_ip'] + ':30200/' +\
-             self.ccg.bootstrap_token + '/' + self.settings['master_node_ip']
-        
-        try:
-            # long time out due to kubernetes install happening on same process
-            # on the server as serving the http response
-            r = requests.get(req_url, timeout=360)
-            response = r.text
-            return response
-        except requests.exceptions.ConnectionError:
-            time.sleep(8)
-            if num_tries > 30:
-                print('unable to contact k3s master server')
-                return
-            return self.get_k3s_config(num_tries=num_tries+1)
-    
-    def write_modify_k3s_config(self, k3s_config, write_path=None):
-        if write_path is None:
-            base_path = os.getcwd()
-            write_path = os.path.join(base_path, 'k3s_config.yaml')
-
-        master_addr = self.settings['master_node_ip'] + ':6443\n    insecure-skip-tls-verify: true'
-  
-        updated_ip = master_addr.join(k3s_config.split('127.0.0.1:6443'))
-        with open(write_path, 'w') as out_config:
-            out_config.write(updated_ip)
-'''
 
 if __name__ == '__main__':
+    '''
     do = ProvisionDigitalOcean(
         open('/home/nafis/code/pymada/test_project/do_token.txt').read(),
         's-1vcpu-1gb', '18.04.3 (LTS) x64')
     
     #do.create_master()
     do.delete_all()
-
-
+    '''
     print('ok')
