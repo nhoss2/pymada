@@ -218,6 +218,9 @@ class Provision(object):
         try:
             # long time out due to kubernetes install happening on same process
             # on the server as serving the http response
+
+            print(req_url)
+
             r = requests.get(req_url, timeout=360)
             response = r.text
             return response
@@ -340,7 +343,7 @@ class ProvisionGoogleCloud(Provision):
 class ProvisionAWS(Provision):
 
     def __init__(self, access_id, secret_key, region, node_size, node_image,
-                 node_location, node_subnet, node_image_owner=None):
+                 node_location, node_subnet, keyname=None, node_image_owner=None):
 
         aws_driver = get_driver(Provider.EC2)
 
@@ -357,6 +360,7 @@ class ProvisionAWS(Provision):
             'image': node_image,
             'image_owner': node_image_owner,
             'location': node_location,
+            'keyname': keyname,
             'subnet': node_subnet
         }
 
@@ -472,7 +476,9 @@ def create_node_aws_mp(driver_info, node_info):
             size=get_size(driver, node_info['size']),
             image=selected_image,
             location=node_location,
-            ex_subnet=subnet
+            ex_subnet=subnet,
+            ex_keyname=node_info['keyname'],
+            ex_userdata=node_info['ex_userdata']
         )
     except Exception as e:
         traceback.print_exc()

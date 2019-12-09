@@ -109,6 +109,8 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
     )
     '''
 
+    #TODO: allow blank keys in settings
+
     gc = ProvisionAWS(
         pymada_settings['provision']['aws']['access_id'],
         pymada_settings['provision']['aws']['secret_key'],
@@ -117,7 +119,8 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
         pymada_settings['provision']['instance']['image'],
         pymada_settings['provision']['instance']['location'],
         pymada_settings['provision']['instance']['subnet'],
-        pymada_settings['provision']['instance']['image_owner'],
+        pymada_settings['provision']['instance']['keyname'],
+        pymada_settings['provision']['instance']['image_owner']
     )
 
     gc.create_master(preemptible=preempt_master)
