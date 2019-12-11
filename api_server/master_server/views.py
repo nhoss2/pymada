@@ -81,12 +81,6 @@ class UrlSingle(EnvTokenAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RegisterAgent(EnvTokenAPIView):
-
-    def get(self, request, format=None):
-        agents = Agent.objects.all()
-        serializer = AgentSerializer(agents, many=True)
-        return Response(serializer.data)
-
     def post(self, request, format=None):
         serializer = AgentSerializer(data=request.data)
         if serializer.is_valid():
@@ -104,6 +98,17 @@ class RegisterAgent(EnvTokenAPIView):
             
             return Response(recorded_s.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ListAgents(EnvTokenAPIView):
+    def get(self, request, format=None):
+        if 'min_id' in request.query_params and 'max_id' in request.query_params:
+            min_id = request.query_params['min_id']
+            max_id = request.query_params['max_id']
+            agents = Agent.objects.filter(pk__gte=min_id, pk__lte=max_id)
+        else:
+            agents = Agent.objects.all()
+        serializer = AgentSerializer(agents, many=True)
+        return Response(serializer.data)
 
 class RegisterRunner(EnvTokenAPIView):
     def get(self, request, format=None):

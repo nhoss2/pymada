@@ -123,7 +123,11 @@ def delete_deployment(deployment_name, config_path=None):
         config_path = os.path.join(base_dir, 'k3s_config.yaml')
     kube_config.load_kube_config(config_file=config_path)
     extensions_v1beta1 = client.ExtensionsV1beta1Api()
-    extensions_v1beta1.delete_namespaced_deployment(deployment_name, 'default', propagation_policy='Foreground')
+    try:
+        extensions_v1beta1.delete_namespaced_deployment(deployment_name, 'default', propagation_policy='Foreground')
+    except client.rest.ApiException:
+        # ignore 404s
+        pass
 
 def delete_all_deployments(config_path=None):
     deployment_names = ['pymada-agents-deployment', 'pymada-master-deployment']

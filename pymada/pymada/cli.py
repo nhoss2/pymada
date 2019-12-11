@@ -14,7 +14,7 @@ from .kube import (run_master_server, run_agent_deployment, get_deployment_statu
 from .master_client import (read_provision_settings, request_master, add_runner, 
                             add_url, get_results, list_screenshots,
                             list_screenshots_by_task, download_screenshot,
-                            get_url_tasks)
+                            get_url_tasks, list_agents)
 
 '''
 things to do:
@@ -137,6 +137,16 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
     gc.write_modify_k3s_config(config, write_path=config_path)
 
     print('done!')
+
+'''
+requires: 
+    - provision_data.json
+    - cloud_api_auth.json
+'''
+@cli.command()
+def terminate(config_path=None):
+    # todo when providers are supported for cli
+    pass
 
 @cli.group()
 def run():
@@ -451,6 +461,29 @@ def tasks(min_id=None, max_id=None):
         url_tasks = get_url_tasks()
     
     click.echo(json.dumps(url_tasks, indent='  '))
+
+if __name__ == '__main__':
+    cli()
+
+
+'''
+requires:
+    - provision_data.json
+'''
+@info.command()
+@click.argument('min_id', required=False, type=click.INT)
+@click.argument('max_id', required=False, type=click.INT)
+def agents(min_id=None, max_id=None):
+    if min_id != None and max_id is None or min_id is None and max_id != None:
+        print('both min id and max id is required')
+        return
+
+    if min_id != None and max_id != None:
+        agents = list_agents(min_id=min_id, max_id=max_id)
+    else:
+        agents = list_agents()
+    
+    click.echo(json.dumps(agents, indent='  '))
 
 if __name__ == '__main__':
     cli()
