@@ -176,7 +176,7 @@ class Provision(object):
 
         if 'master_node_name' in self.settings:
             node = get_node(self.driver, self.settings['master_node_name'])
-            print('destroying:', node.name)
+            print('terminating:', node.name)
             self.driver.destroy_node(node)
             del(self.settings['master_node_name'])
             del(self.settings['master_node_ip'])
@@ -186,7 +186,7 @@ class Provision(object):
         if 'agents' in self.settings:
             for node_name in self.settings['agents']:
                 node = get_node(self.driver, node_name)
-                print('destroying:', node.name)
+                print('terminating:', node.name)
                 self.driver.destroy_node(node)
 
             del(self.settings['agents'])
