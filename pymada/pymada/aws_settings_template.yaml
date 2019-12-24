@@ -1,0 +1,13 @@
+provision:
+    provider:
+        name: aws
+        access_id:
+        secret_key:
+        region: us-east-1
+    instance:
+        size: t2.small
+        image: ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-20191002
+        image_owner: 099720109477
+        location: us-east-1a
+        subnet: add_subnet_here
+        keyname: optional_ssh_keyname_here

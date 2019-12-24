@@ -1,8 +1,0 @@
-provision:
-    google_cloud:
-        user: user
-        auth_file: file.json
-        project: project-name
-    instance:
-        size: g1-small
-        image: ubuntu-1804

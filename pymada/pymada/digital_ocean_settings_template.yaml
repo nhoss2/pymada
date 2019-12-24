@@ -1,0 +1,7 @@
+provision:
+    provider:
+        name: digital_ocean
+        token:
+    instance:
+        size: s-1vcpu-1gb
+        image: 18.04.3 (LTS) x64

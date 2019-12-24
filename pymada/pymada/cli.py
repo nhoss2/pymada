@@ -16,30 +16,31 @@ from .master_client import (read_provision_settings, request_master, add_runner,
                             list_screenshots_by_task, download_screenshot,
                             get_url_tasks, list_agents)
 
-'''
-things to do:
-    - config required:
-        - cloud provider
-            - cloud provider auth file
-            - instance types (optional?)
-            - instance location (optional)
-            - instance preemptible (optional)
-            - docker image names and versions (optional)
-'''
+
+AVAILABLE_PROVIDERS = ['aws', 'digital_ocean', 'google_cloud']
 
 @click.group()
 def cli():
     pass
 
 @cli.command()
+@click.argument('provider_name')
 @click.argument('directory', default='.', type=click.Path())
-def init(directory='.'):
+def init(provider_name, directory='.'):
     if not os.path.exists(directory):
         os.mkdir(directory)
+    
+    if provider_name not in AVAILABLE_PROVIDERS:
+        print('provider_name argument needs to be one of: ' + ', '.join(AVAILABLE_PROVIDERS))
+        return
 
     file_dir = os.path.dirname(os.path.realpath(__file__))
-    settings_template_path = os.path.join(file_dir, 'settings_template.yaml')
+    settings_template_path = os.path.join(file_dir, provider_name + '_settings_template.yaml')
     write_path = os.path.join(directory, 'pymada_settings.yaml')
+
+    if os.path.exists(write_path):
+        print('error file already exists at ' + write_path)
+        return
 
     print('writing settings at ' + write_path)
     shutil.copyfile(settings_template_path, write_path)
@@ -67,12 +68,11 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_to
 
     provider_name = pymada_settings['provision']['provider']['name']
 
-    available_providers = ['aws', 'digital_ocean', 'google_cloud']
-    if provider_name in available_providers:
+    if provider_name in AVAILABLE_PROVIDERS:
         provider = load_provider(provider_name, pymada_settings)
     else:
         print('Error with provider name in pymada_settings.yaml. Needs to be one of: '
-              + ', '.join(available_providers))
+              + ', '.join(AVAILABLE_PROVIDERS))
         return
     
     provider.create_master(preemptible=preempt_master)
@@ -483,7 +483,16 @@ def load_provider(provider_name, pymada_settings):
         )
 
     elif provider_name == 'digital_ocean':
-        pass
+        node_location = None
+        if 'location' in pymada_settings['provision']['instance']:
+            node_location = pymada_settings['provision']['instance']['location']
+
+        return ProvisionDigitalOcean(
+            pymada_settings['provision']['provider']['token'],
+            pymada_settings['provision']['instance']['size'],
+            pymada_settings['provision']['instance']['image'],
+            node_location
+        )
 
 
 if __name__ == '__main__':

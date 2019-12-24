@@ -1,0 +1,9 @@
+provision:
+    provider:
+        name: google_cloud
+        user: compute@something.gserviceaccount.com
+        auth_file: computeauth.json
+        project: project_name
+    instance:
+        size: g1-small
+        image: ubuntu-1804
