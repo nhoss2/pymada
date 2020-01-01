@@ -15,6 +15,7 @@ from .master_client import (read_provision_settings, request_master, add_runner,
                             add_url, get_results, list_screenshots,
                             list_screenshots_by_task, download_screenshot,
                             get_url_tasks, list_agents)
+from .run import run_puppeteer
 
 
 AVAILABLE_PROVIDERS = ['aws', 'digital_ocean', 'google_cloud']
@@ -29,13 +30,14 @@ def cli():
 def init(provider_name, directory='.'):
     if not os.path.exists(directory):
         os.mkdir(directory)
-    
+
     if provider_name not in AVAILABLE_PROVIDERS:
         print('provider_name argument needs to be one of: ' + ', '.join(AVAILABLE_PROVIDERS))
         return
 
     file_dir = os.path.dirname(os.path.realpath(__file__))
-    settings_template_path = os.path.join(file_dir, provider_name + '_settings_template.yaml')
+    settings_template_path = os.path.join(file_dir, 'provider_yaml',
+                                          provider_name + '_settings_template.yaml')
     write_path = os.path.join(directory, 'pymada_settings.yaml')
 
     if os.path.exists(write_path):
@@ -50,15 +52,14 @@ def init(provider_name, directory='.'):
 requires: 
     - provision_data.json
     - cloud_api_auth.json
+    - pymada_settings.yaml
 '''
 @cli.command()
 @click.argument('num-agents', type=click.INT)
 @click.option('-p', '--provider', default='gc')
 @click.option('--preempt-agents/--no-preempt-agents', default=True)
 @click.option('--preempt-master/--no-preempt-master', default=True)
-#@click.option('--no-token-auth', default=False, flag_value=True)
-def launch(num_agents, provider, preempt_agents=True, preempt_master=True, no_token_auth=False,
-           config_path=None):
+def launch(num_agents, provider, preempt_agents=True, preempt_master=True, config_path=None):
 
     if type(num_agents) is not int:
         print('error: agents argument needs to be a number. given input:', num_agents)
@@ -117,9 +118,15 @@ requires:
 @click.option('--master-url', default=None)
 @click.option('--no-kube-deploy', default=False, flag_value=True)
 @click.option('--no-token-auth', default=False, flag_value=True)
-def puppeteer(runner, replicas=1, packagejson=None, master_url=None,
-                        no_kube_deploy=False, no_token_auth=False, config_path=None):
+@click.option('--kube-config-path', default=None)
+@click.option('--provision-data-path', default=None)
+def puppeteer(runner, replicas=1, packagejson=None, master_url=None, no_kube_deploy=False,
+              no_token_auth=False, kube_config_path=None, provision_data_path=None):
     
+    run_puppeteer(runner, replicas, packagejson, master_url, no_kube_deploy,
+                 no_token_auth, kube_config_path, provision_data_path)
+
+    '''
     if not no_kube_deploy:
         if config_path is None:
             config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
@@ -132,9 +139,6 @@ def puppeteer(runner, replicas=1, packagejson=None, master_url=None,
             return
 
         print('deploying master api server on kubernetes')
-
-        if config_path is None:
-            config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
 
         if no_token_auth:
             run_master_server(config_path)
@@ -164,6 +168,7 @@ def puppeteer(runner, replicas=1, packagejson=None, master_url=None,
                                  auth_token=provision_settings['pymada_auth_token'],
                                  config_path=config_path)
 
+    '''
 
 '''
 requires:

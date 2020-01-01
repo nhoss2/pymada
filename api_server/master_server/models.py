@@ -33,7 +33,7 @@ class Agent(models.Model):
 class Runner(models.Model):
     contents = models.TextField()
     file_name = models.CharField(max_length=200)
-    file_type = models.CharField(max_length=200)
+    file_type = models.CharField(max_length=200) # used by agent_server, must be exact match from agent_server.py
     custom_executable = models.CharField(max_length=200, null=True)
     dependency_file = models.TextField(null=True)
 

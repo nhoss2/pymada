@@ -219,8 +219,6 @@ class Provision(object):
             # long time out due to kubernetes install happening on same process
             # on the server as serving the http response
 
-            print(req_url)
-
             r = requests.get(req_url, timeout=360)
             response = r.text
             return response
@@ -484,15 +482,3 @@ def create_node_aws_mp(driver_info, node_info):
         traceback.print_exc()
 
         raise e
-
-
-if __name__ == '__main__':
-    '''
-    do = ProvisionDigitalOcean(
-        open('/home/nafis/code/pymada/test_project/do_token.txt').read(),
-        's-1vcpu-1gb', '18.04.3 (LTS) x64')
-    
-    #do.create_master()
-    do.delete_all()
-    '''
-    print('ok')
