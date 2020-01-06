@@ -17,13 +17,13 @@ class UrlTaskSerializer(serializers.ModelSerializer):
 class AgentSerializer(serializers.ModelSerializer):
 
     agent_state = serializers.CharField(required=False)
-    last_contact = serializers.IntegerField(required=False)
+    last_contact_attempt = serializers.IntegerField(required=False)
     runner_num = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = Agent
-        fields = ('id', 'hostname', 'agent_state', 'last_contact', 'agent_url',
-                  'runner_num')
+        fields = ('id', 'hostname', 'agent_state', 'last_contact_attempt', 'agent_url',
+                  'runner_num', 'assigned_task')
     
 
 class RunnerSerializer(serializers.ModelSerializer):

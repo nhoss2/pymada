@@ -42,14 +42,20 @@ def run_master_server(config_path=None, auth_token=None, num_retries=5):
         os.remove(temp_path)
 
 
-def setup_master_api_deployment(yaml_path, auth_token=None):
+def setup_master_api_deployment(yaml_path, auth_token=None, max_task_duration=None):
     with open(yaml_path) as deploy_file:
         deploy_yaml = yaml.load(deploy_file.read(), Loader=yaml.FullLoader)
 
+        env_vars = []
+
         if auth_token is not None:
-            deploy_yaml['spec']['template']['spec']['containers'][0]['env'] = [
-                {'name': 'PYMADA_TOKEN_AUTH', 'value': auth_token}
-            ]
+            env_vars.append({'name': 'PYMADA_TOKEN_AUTH', 'value': auth_token})
+
+        if max_task_duration is not None:
+            env_vars.append({'name': 'PYMADA_MAX_TASK_DURATION_SECONDS', 'value': max_task_duration})
+
+        if len(env_vars) > 0:
+            deploy_yaml['spec']['template']['spec']['containers'][0]['env'] = env_vars
 
         return yaml.dump(deploy_yaml)
         

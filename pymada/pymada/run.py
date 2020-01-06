@@ -1,6 +1,20 @@
 import time
 import os
+import yaml
 from pymada import master_client, kube
+
+def load_pymada_settings(settings_path=None):
+    if settings_path is not None:
+        pymada_settings_path = settings_path
+    else:
+        base_path = os.getcwd()
+        pymada_settings_path = os.path.join(base_path, 'pymada_settings.yaml')
+
+    with open(pymada_settings_path) as settingsfile:
+        pymada_settings = yaml.load(settingsfile.read(), Loader=yaml.FullLoader)
+
+    return pymada_settings
+
 
 def run_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
                         no_kube_deploy=False, no_token_auth=False, kube_config_path=None,

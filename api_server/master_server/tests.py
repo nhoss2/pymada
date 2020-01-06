@@ -23,7 +23,7 @@ class MasterServerTestCase(TestCase):
             agent = Agent.objects.create(
                 hostname='test',
                 agent_url='http://127.0.0.1:' + str(5001 + i),
-                last_contact=time.time()
+                last_contact_attempt=time.time()
             )
 
             agent.save()
@@ -147,7 +147,7 @@ class ControlTestCast(TestCase):
             agent = Agent.objects.create(
                 hostname='test',
                 agent_url='http://127.0.0.1:' + str(5001 + i),
-                last_contact=time.time()
+                last_contact_attempt=time.time()
             )
 
             agent.save()

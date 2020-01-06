@@ -69,13 +69,22 @@ class UrlSingle(EnvTokenAPIView):
             return UrlTask.objects.get(pk=pk)
         except UrlTask.DoesNotExist:
             raise Http404
+    
+    def get_agent(self, pk):
+        try:
+            return Agent.objects.get(pk=pk)
+        except Agent.DoesNotExist:
+            raise Http404
 
     def put(self, request, pk, format=None):
         task = self.get_task(pk)
+        agent = self.get_agent(task.assigned_agent)
 
         serializer = UrlTaskSerializer(task, data=request.data)
         if serializer.is_valid():
-            serializer.save(task_state='COMPLETE')
+            agent.assigned_task = None
+            agent.save()
+            serializer.save(task_state='COMPLETE', end_time=time.time(), assigned_agent=None)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -89,7 +98,7 @@ class RegisterAgent(EnvTokenAPIView):
             
             if len(agent_search) == 0:
                 print('new agent', request.data)
-                serializer.save(last_contact=time.time())
+                serializer.save(last_contact_attempt=time.time())
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             
             recorded_agent = agent_search[0]

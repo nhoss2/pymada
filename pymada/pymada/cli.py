@@ -15,7 +15,7 @@ from .master_client import (read_provision_settings, request_master, add_runner,
                             add_url, get_results, list_screenshots,
                             list_screenshots_by_task, download_screenshot,
                             get_url_tasks, list_agents)
-from .run import run_puppeteer
+from .run import run_puppeteer, load_pymada_settings
 
 
 AVAILABLE_PROVIDERS = ['aws', 'digital_ocean', 'google_cloud']
@@ -65,7 +65,7 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, confi
         print('error: agents argument needs to be a number. given input:', num_agents)
         return
     
-    pymada_settings = load_settings()
+    pymada_settings = load_pymada_settings()
 
     provider_name = pymada_settings['provision']['provider']['name']
 
@@ -98,7 +98,7 @@ requires:
 '''
 @cli.command()
 def terminate(config_path=None):
-    pymada_settings = load_settings()
+    pymada_settings = load_pymada_settings()
     provider_name = pymada_settings['provision']['provider']['name']
     provider = load_provider(provider_name, pymada_settings)
     provider.delete_all()
@@ -125,50 +125,6 @@ def puppeteer(runner, replicas=1, packagejson=None, master_url=None, no_kube_dep
     
     run_puppeteer(runner, replicas, packagejson, master_url, no_kube_deploy,
                  no_token_auth, kube_config_path, provision_data_path)
-
-    '''
-    if not no_kube_deploy:
-        if config_path is None:
-            config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
-
-        # check if master deployment already exists
-        master_dep_status = get_deployment_status('app=pymada-master')
-        if len(master_dep_status['items']) != 0:
-            print('error: master api server deployment already exists. ' +
-                  'You can remove all current deployments with "pymada kube delete-deployments"')
-            return
-
-        print('deploying master api server on kubernetes')
-
-        if no_token_auth:
-            run_master_server(config_path)
-        else:
-            provision_settings = read_provision_settings()
-            run_master_server(config_path, auth_token=provision_settings['pymada_auth_token'])
-
-        # wait for master api server deployment on kubernetes
-        while True:
-            dep_status = get_deployment_status('app=pymada-master')
-            num_avail = dep_status['items'][0]['status']['available_replicas']
-            if num_avail == 1:
-                break
-
-            time.sleep(2)
-
-    add_runner(runner, 'node_puppeteer', packagejson, master_url=master_url)
-
-    if not no_kube_deploy:
-        print('deploying agents on kubernetes')
-        if no_token_auth:
-            run_agent_deployment('nhoss2/pymada-node-puppeteer', replicas,
-                                 config_path=config_path)
-        else:
-            provision_settings = read_provision_settings()
-            run_agent_deployment('nhoss2/pymada-node-puppeteer', replicas,
-                                 auth_token=provision_settings['pymada_auth_token'],
-                                 config_path=config_path)
-
-    '''
 
 '''
 requires:
@@ -440,16 +396,6 @@ def agents(min_id=None, max_id=None):
     
     click.echo(json.dumps(agents, indent='  '))
 
-
-def load_settings():
-    #TODO: checks for cloud_api_auth.json file
-
-    base_path = os.getcwd()
-    pymada_settings_path = os.path.join(base_path, 'pymada_settings.yaml')
-    with open(pymada_settings_path) as settingsfile:
-        pymada_settings = yaml.load(settingsfile.read(), Loader=yaml.FullLoader)
-
-    return pymada_settings
 
 def load_provider(provider_name, pymada_settings):
     if provider_name == 'aws':

@@ -14,6 +14,7 @@ class UrlTask(models.Model):
     assigned_agent = models.ForeignKey('Agent', on_delete=models.CASCADE, null=True)
     fail_num = models.IntegerField(default=0)
     start_time = models.FloatField(default=0)
+    end_time = models.FloatField(default=0)
 
 class Agent(models.Model):
     agent_states = (
@@ -26,9 +27,10 @@ class Agent(models.Model):
     
     hostname = models.TextField()
     agent_state = models.CharField(choices=agent_states, max_length=10, default='NO_RUNNER')
-    last_contact = models.IntegerField()
+    last_contact_attempt = models.IntegerField()
     agent_url = models.CharField(max_length=300)
     runner_num = models.IntegerField(null=True)
+    assigned_task = models.ForeignKey('UrlTask', on_delete=models.CASCADE, null=True)
 
 class Runner(models.Model):
     contents = models.TextField()

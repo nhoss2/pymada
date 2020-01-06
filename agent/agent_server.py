@@ -140,7 +140,8 @@ class Agent(object):
     
     def kill_runner(self):
         if self.runner is not None:
-            return self.runner.kill()
+            self.runner.kill()
+            return {}
 
         return {'error': 'no runner available'}
     
