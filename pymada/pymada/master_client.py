@@ -3,8 +3,6 @@ import json
 import time
 import requests
 
-from .kube import run_master_server, run_agent_deployment, get_deployment_status
-
 def read_provision_settings(settings_path=None):
     if settings_path is None:
         dir_name = os.getcwd()
@@ -15,7 +13,6 @@ def read_provision_settings(settings_path=None):
 
     with open(settings_path) as provision_json:
         return json.load(provision_json)
-
 
 def request_master(url, method, req_data=None, auth_token=None, master_url=None, _num_tries=0):
     provision_settings = read_provision_settings()

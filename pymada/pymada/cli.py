@@ -9,7 +9,7 @@ from tabulate import tabulate
 
 from .provision import (ProvisionGoogleCloud, ProvisionDigitalOcean,
                         ProvisionAWS)
-from .kube import (run_master_server, run_agent_deployment, get_deployment_status,
+from .kube import (get_deployment_status,
                    delete_all_deployments, get_pod_list, get_pod_logs)
 from .master_client import (read_provision_settings, request_master, add_runner, 
                             add_url, get_results, list_screenshots,

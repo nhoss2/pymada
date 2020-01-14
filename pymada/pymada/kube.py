@@ -13,6 +13,7 @@ def run_master_server(config_path=None, auth_token=None, num_retries=5):
     if config_path is None:
         cwd = os.getcwd()
         config_path = os.path.join(cwd, 'k3s_config.yaml')
+
     kube_config.load_kube_config(config_file=config_path)
     kube_client = client.ApiClient()
 
@@ -63,34 +64,47 @@ def setup_master_api_deployment(yaml_path, auth_token=None, max_task_duration=No
 
 def run_deployment(image, replicas, deploy_name,
                     template_label, container_name, env_vars=[],
-                    container_ports=[], config_path=None):
+                    container_ports=[], pod_node_selector=None,
+                    config_path=None):
 
     container = client.V1Container(
         name=container_name,
         image=image,
         ports=container_ports,
         env=env_vars)
+    
+    if pod_node_selector is None:
+        pod_spec = client.V1PodSpec(containers=[container])
+    else:
+        pod_spec = client.V1PodSpec(containers=[container],
+                                    node_selector=pod_node_selector)
 
     template = client.V1PodTemplateSpec(
         metadata=client.V1ObjectMeta(labels=template_label),
-        spec=client.V1PodSpec(containers=[container]))
+        spec=pod_spec)
 
-    spec = client.ExtensionsV1beta1DeploymentSpec(
+    spec = client.V1DeploymentSpec(
         replicas=replicas,
-        template=template)
+        template=template,
+        selector={'matchLabels': template_label})
 
-    deployment = client.ExtensionsV1beta1Deployment(
-        api_version="extensions/v1beta1",
+    deployment_metadata = client.V1ObjectMeta(
+        name=deploy_name,
+        labels=template_label
+    )
+
+    deployment = client.V1Deployment(
+        api_version="apps/v1",
         kind="Deployment",
-        metadata=client.V1ObjectMeta(name=deploy_name),
+        metadata=deployment_metadata,
         spec=spec)
 
     if config_path is None:
         base_dir = os.getcwd()
         config_path = os.path.join(base_dir, 'k3s_config.yaml')
     kube_config.load_kube_config(config_file=config_path)
-    extensions_v1beta1 = client.ExtensionsV1beta1Api()
-    extensions_v1beta1.create_namespaced_deployment(body=deployment, namespace="default")
+    appsv1_client = client.AppsV1Api()
+    appsv1_client.create_namespaced_deployment(body=deployment, namespace="default")
 
 
 def run_agent_deployment(image, replicas, deploy_name='pymada-agents-deployment',
@@ -108,8 +122,46 @@ def run_agent_deployment(image, replicas, deploy_name='pymada-agents-deployment'
 
     container_ports = [client.V1ContainerPort(container_port=agent_port)]
 
+
     run_deployment(image, replicas, deploy_name, template_label, 
-            container_name, env_vars, container_ports, config_path)
+            container_name, env_vars=env_vars, container_ports=container_ports,
+            config_path=config_path)
+
+def run_master_deployment(image, deploy_name='pymada-master-deployment',
+                          template_label={'app': 'pymada-master'},
+                          container_port=8000, container_name='pymada-master-container',
+                          config_path=None, auth_token=None, max_task_duration=None):
+
+    env_vars = []
+
+    if auth_token is not None:
+        env_vars.append(client.V1EnvVar("PYMADA_TOKEN_AUTH", auth_token))
+
+    if max_task_duration is not None:
+        env_vars.append(client.V1EnvVar("PYMADA_MAX_TASK_DURATION_SECONDS", max_task_duration))
+
+    container_ports = [client.V1ContainerPort(container_port=container_port)]
+
+    pod_node_selector = {'pymada-role': 'master'}
+
+    run_deployment(image, 1, deploy_name, template_label,
+            container_name, env_vars=env_vars, container_ports=container_ports,
+            pod_node_selector=pod_node_selector, config_path=config_path)
+
+    base_dir = os.path.dirname(os.path.realpath(__file__))
+
+    if config_path is None:
+        cwd = os.getcwd()
+        config_path = os.path.join(cwd, 'k3s_config.yaml')
+
+    kube_config.load_kube_config(config_file=config_path)
+    kube_client = client.ApiClient()
+
+    if len(get_service_status('service=pymada-master-service').items) == 0:
+        utils.create_from_yaml(kube_client, os.path.join(base_dir, 'kube_yaml', 'pymada_master_service.yaml'))
+
+    if len(get_service_status('service=pymada-master-nodeport').items) == 0:
+        utils.create_from_yaml(kube_client, os.path.join(base_dir, 'kube_yaml', 'pymada_master_nodeport.yaml'))
 
 
 def get_deployment_status(label_selector=None, config_path=None):
@@ -118,8 +170,10 @@ def get_deployment_status(label_selector=None, config_path=None):
         config_path = os.path.join(base_dir, 'k3s_config.yaml')
 
     kube_config.load_kube_config(config_file=config_path)
-    k_client = client.AppsV1beta1Api()
-    api_response = k_client.list_namespaced_deployment('default', label_selector=label_selector)
+    appsv1_client = client.AppsV1Api()
+
+    api_response = appsv1_client.list_namespaced_deployment('default', label_selector=label_selector)
+    
     return api_response.to_dict()
 
 
@@ -128,9 +182,9 @@ def delete_deployment(deployment_name, config_path=None):
         base_dir = os.getcwd()
         config_path = os.path.join(base_dir, 'k3s_config.yaml')
     kube_config.load_kube_config(config_file=config_path)
-    extensions_v1beta1 = client.ExtensionsV1beta1Api()
+    appsv1_client = client.AppsV1Api()
     try:
-        extensions_v1beta1.delete_namespaced_deployment(deployment_name, 'default', propagation_policy='Foreground')
+        appsv1_client.delete_namespaced_deployment(deployment_name, 'default', propagation_policy='Foreground')
     except client.rest.ApiException:
         # ignore 404s
         pass

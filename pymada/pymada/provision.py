@@ -96,7 +96,7 @@ class CloudConfigGen(object):
         yaml_file = open(self.node_yaml).read()
 
         # note, if updating K3S version, need to update on bootstrap.py as well
-        k3s_command = 'INSTALL_K3S_VERSION=v0.9.1 K3S_CLUSTER_SECRET=' + self.token + ' K3S_URL="https://' + master_ip + ':6443" sh /k3s_install.sh\n'
+        k3s_command = 'INSTALL_K3S_VERSION=v1.0.1 K3S_CLUSTER_SECRET=' + self.token + ' K3S_URL="https://' + master_ip + ':6443" sh /k3s_install.sh\n'
 
         return yaml_file + k3s_command
 
@@ -158,8 +158,10 @@ class Provision(object):
         for i in range(num):
             agent_node_names.append('pymada-agent-' + str(i) + '-' + self.node_suffix)
         
+        node_user_data = self.ccg.gen_node(self.settings['master_node_ip'])
+
         self.create_node_mp(agent_node_names,
-                            user_data=self.ccg.gen_node(self.settings['master_node_ip']),
+                            user_data=node_user_data,
                             preemptible=preemptible)
         
         if 'agents' in self.settings:
