@@ -12,8 +12,9 @@ from django.contrib.auth.models import User
 
 class Control(object):
 
-    def __init__(self, max_task_duration_seconds=60*5):
+    def __init__(self, max_task_duration_seconds=60*5, max_task_retries=3):
         self.max_duration_seconds = max_task_duration_seconds
+        self.max_task_retries = max_task_retries
 
     # TODO: find better way of being notified of state changes instead of polling
     def loop(self):
@@ -46,20 +47,6 @@ class Control(object):
             self.loop()
 
     def assign_task(self, task, agent):
-
-        # check agent doesnt have existing assigned tasks that haven't completed
-        assigned_tasks = UrlTask.objects.filter(assigned_agent=agent)
-        for assigned_task in assigned_tasks:
-            if assigned_task.task_state != 'COMPLETE':
-                logging.warning('task {} ({}) was assigned but no results were returned'.format(
-                    assigned_task.id, assigned_task.url))
-                assigned_task.fail_num += 1
-                assigned_task.task_state = 'QUEUED'
-                assigned_task.start_time = 0.0
-
-            assigned_task.assigned_agent = None
-            assigned_task.save()
-
         logging.info('assigning ' + str(task.id) + ' to agent ' 
             + str(agent.id))
 
@@ -108,6 +95,9 @@ class Control(object):
                     str(agent.agent_state) + ' new state ' + response_status)
                 agent.agent_state = response_status
                 agent.save()
+
+                if response_status == 'IDLE':
+                    self.check_for_failed_task(agent)
             
         agent.last_contact_attempt = time.time()
         agent.save()
@@ -121,6 +111,29 @@ class Control(object):
         if time.time() - task_start_time > self.max_duration_seconds:
             logging.info('task ' + str(agent.assigned_task) + ' taking too long')
             self.terminate_task(agent, agent.assigned_task)
+
+    def check_for_failed_task(self, agent):
+        if agent.assigned_task is None:
+            return
+
+        assigned_task = agent.assigned_task
+
+        if assigned_task.task_state != 'ASSIGNED':
+            return
+
+        logging.warning('task {} ({}) was assigned but no results were returned'.format(
+            assigned_task.id, assigned_task.url))
+
+        assigned_task.fail_num += 1
+        assigned_task.start_time = 0
+
+        if assigned_task.fail_num >= self.max_task_retries:
+            assigned_task.task_state = 'COMPLETE'
+        else:
+            assigned_task.task_state = 'QUEUED'
+
+        assigned_task.assigned_agent = None
+        assigned_task.save()
 
     def _send_request(self, req_url, json_data=None):
         try:
@@ -149,7 +162,13 @@ def run():
     except TypeError:
         max_duration = 60*5
 
-    controller = Control(max_task_duration_seconds=max_duration)
+    try:
+        max_retries = int(os.getenv('PYMADA_MAX_TASK_RETRIES'))
+    except TypeError:
+        max_retries = 3
+
+    controller = Control(max_task_duration_seconds=max_duration,
+                         max_task_retries=max_retries)
 
     # create a default user for use for the token auth
     if len(User.objects.filter(username='pymadauser')) == 0:

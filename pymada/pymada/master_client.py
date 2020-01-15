@@ -149,3 +149,19 @@ def list_agents(min_id=None, max_id=None, master_url=None):
         return response.json()
     else:
         print(response.text)
+
+'''
+returns format: {'url_tasks': int}
+'''
+def get_url_tasks_length(task_state=None, master_url=None):
+    req_url = '/url_tasks_length/'
+
+    if task_state is not None:
+        req_url += '?state=' + task_state
+
+    response = request_master(req_url, 'GET', master_url=master_url)
+
+    if response.ok:
+        return response.json()
+    else:
+        print(response.text)

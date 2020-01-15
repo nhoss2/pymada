@@ -70,15 +70,9 @@ class UrlSingle(EnvTokenAPIView):
         except UrlTask.DoesNotExist:
             raise Http404
     
-    def get_agent(self, pk):
-        try:
-            return Agent.objects.get(pk=pk)
-        except Agent.DoesNotExist:
-            raise Http404
-
     def put(self, request, pk, format=None):
         task = self.get_task(pk)
-        agent = self.get_agent(task.assigned_agent)
+        agent = task.assigned_agent
 
         serializer = UrlTaskSerializer(task, data=request.data)
         if serializer.is_valid():
@@ -88,6 +82,25 @@ class UrlSingle(EnvTokenAPIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UrlListLength(EnvTokenAPIView):
+
+    def get(self, request, format=None):
+
+        url_tasks_len = None
+        if 'state' in request.query_params:
+            avail_states = [s[1].lower() for s in UrlTask.task_states]
+            req_state = request.query_params['state'].lower()
+
+            if req_state in avail_states:
+                url_tasks_len = len(UrlTask.objects.filter(task_state=req_state.upper()))
+        else:
+            url_tasks_len = len(UrlTask.objects.all())
+
+        return JsonResponse({
+            'url_tasks': url_tasks_len
+        })
+
 
 class RegisterAgent(EnvTokenAPIView):
     def post(self, request, format=None):

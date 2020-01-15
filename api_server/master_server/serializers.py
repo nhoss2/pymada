@@ -7,12 +7,12 @@ class UrlTaskSerializer(serializers.ModelSerializer):
     json_metadata = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     fail_num = serializers.IntegerField(required=False, allow_null=True)
     start_time = serializers.FloatField(required=False, allow_null=True)
-    screenshot = serializers.ImageField(required=False, allow_null=True)
+    end_time = serializers.FloatField(required=False, allow_null=True)
 
     class Meta:
         model = UrlTask
         fields = ('id', 'url', 'json_metadata', 'task_state', 'task_result',
-                  'assigned_agent', 'fail_num', 'start_time', 'screenshot')
+                  'assigned_agent', 'fail_num', 'start_time', 'end_time')
 
 class AgentSerializer(serializers.ModelSerializer):
 

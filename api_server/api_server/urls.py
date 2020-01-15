@@ -4,6 +4,7 @@ from master_server import views
 urlpatterns = [
     path('urls/', views.UrlList.as_view()),
     path('urls/<int:pk>/', views.UrlSingle.as_view()),
+    path('url_tasks_length/', views.UrlListLength.as_view()),
     path('register_agent/', views.RegisterAgent.as_view()),
     path('agents/', views.ListAgents.as_view()),
     path('register_runner/', views.RegisterRunner.as_view()),
