@@ -9,6 +9,7 @@ from kubernetes.config import kube_config
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+'''
 def run_master_server(config_path=None, auth_token=None, num_retries=5):
     if config_path is None:
         cwd = os.getcwd()
@@ -41,7 +42,7 @@ def run_master_server(config_path=None, auth_token=None, num_retries=5):
 
     if os.path.exists(temp_path):
         os.remove(temp_path)
-
+'''
 
 def setup_master_api_deployment(yaml_path, auth_token=None, max_task_duration=None):
     with open(yaml_path) as deploy_file:

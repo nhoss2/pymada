@@ -35,11 +35,9 @@ def run_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
         print('deploying master api server on kubernetes')
 
         if no_token_auth:
-            #kube.run_master_server(kube_config_path)
             kube.run_master_deployment('nhoss2/pymada-master', config_path=kube_config_path)
         else:
             provision_settings = master_client.read_provision_settings(provision_settings_path)
-            #kube.run_master_server(kube_config_path, auth_token=provision_settings['pymada_auth_token'])
             kube.run_master_deployment('nhoss2/pymada-master', config_path=kube_config_path,
                                        auth_token=provision_settings['pymada_auth_token'])
 
