@@ -16,10 +16,19 @@ def load_pymada_settings(settings_path=None):
     return pymada_settings
 
 
-# TODO: add max_task_duration into this, maybe by reading pymada_settings.yaml directly
 def run_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
-                        no_kube_deploy=False, no_token_auth=False, kube_config_path=None,
-                        provision_settings_path=None):
+                        no_kube_deploy=False, no_token_auth=False, pymada_settings_path=None,
+                        kube_config_path=None, provision_settings_path=None):
+
+    pymada_settings = load_pymada_settings(pymada_settings_path)
+
+    max_task_retries = None
+    if 'max_task_retries' in pymada_settings['pymada']:
+        max_task_retries = pymada_settings['pymada']['max_task_retries']
+
+    max_task_duration = None
+    if 'max_task_duration_seconds' in pymada_settings['pymada']:
+        max_task_duration = pymada_settings['pymada']['max_task_duration_seconds']
 
     if not no_kube_deploy:
         if kube_config_path is None:
@@ -35,11 +44,15 @@ def run_puppeteer(runner, replicas=1, packagejson=None, master_url=None,
         print('deploying master api server on kubernetes')
 
         if no_token_auth:
-            kube.run_master_deployment('nhoss2/pymada-master', config_path=kube_config_path)
+            kube.run_master_deployment('nhoss2/pymada-master', config_path=kube_config_path,
+                                       max_task_duration=max_task_duration,
+                                       max_task_retries=max_task_retries)
         else:
             provision_settings = master_client.read_provision_settings(provision_settings_path)
             kube.run_master_deployment('nhoss2/pymada-master', config_path=kube_config_path,
-                                       auth_token=provision_settings['pymada_auth_token'])
+                                       auth_token=provision_settings['pymada_auth_token'],
+                                       max_task_duration=max_task_duration,
+                                       max_task_retries=max_task_retries)
 
         # wait for master api server deployment on kubernetes
         while True:

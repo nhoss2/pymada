@@ -110,6 +110,7 @@ def run():
 requires: 
     - provision_data.json
     - k3s_config.yaml
+    - pymada_settings.yaml
 '''
 @run.command()
 @click.argument('runner', type=click.Path(dir_okay=False, exists=True, readable=True))
@@ -118,13 +119,16 @@ requires:
 @click.option('--master-url', default=None)
 @click.option('--no-kube-deploy', default=False, flag_value=True)
 @click.option('--no-token-auth', default=False, flag_value=True)
+@click.option('--pymada-settings-path', default=None)
 @click.option('--kube-config-path', default=None)
 @click.option('--provision-data-path', default=None)
 def puppeteer(runner, replicas=1, packagejson=None, master_url=None, no_kube_deploy=False,
-              no_token_auth=False, kube_config_path=None, provision_data_path=None):
+              no_token_auth=False, pymada_settings_path=None, kube_config_path=None,
+              provision_data_path=None):
     
     run_puppeteer(runner, replicas, packagejson, master_url, no_kube_deploy,
-                 no_token_auth, kube_config_path, provision_data_path)
+                 no_token_auth, pymada_settings_path, kube_config_path,
+                 provision_data_path)
 
 '''
 requires:

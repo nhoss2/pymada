@@ -131,7 +131,8 @@ def run_agent_deployment(image, replicas, deploy_name='pymada-agents-deployment'
 def run_master_deployment(image, deploy_name='pymada-master-deployment',
                           template_label={'app': 'pymada-master'},
                           container_port=8000, container_name='pymada-master-container',
-                          config_path=None, auth_token=None, max_task_duration=None):
+                          config_path=None, auth_token=None, max_task_duration=None,
+                          max_task_retries=None):
 
     env_vars = []
 
@@ -139,7 +140,10 @@ def run_master_deployment(image, deploy_name='pymada-master-deployment',
         env_vars.append(client.V1EnvVar("PYMADA_TOKEN_AUTH", auth_token))
 
     if max_task_duration is not None:
-        env_vars.append(client.V1EnvVar("PYMADA_MAX_TASK_DURATION_SECONDS", max_task_duration))
+        env_vars.append(client.V1EnvVar("PYMADA_MAX_TASK_DURATION_SECONDS", str(max_task_duration)))
+
+    if  max_task_retries is not None:
+        env_vars.append(client.V1EnvVar("PYMADA_MAX_TASK_RETRIES", str(max_task_retries)))
 
     container_ports = [client.V1ContainerPort(container_port=container_port)]
 
