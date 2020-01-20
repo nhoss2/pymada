@@ -4,6 +4,12 @@ provision:
         user: compute@something.gserviceaccount.com
         auth_file: computeauth.json
         project: project_name
+        preempt_master: false
+        preempt_agents: true
     instance:
         size: g1-small
         image: ubuntu-1804
+
+pymada:
+    max_task_duration_seconds: 300
+    max_task_retries: 3

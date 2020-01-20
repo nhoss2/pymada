@@ -11,3 +11,7 @@ provision:
         location: us-east-1a
         subnet: add_subnet_here
         keyname: optional_ssh_keyname_here
+
+pymada:
+    max_task_duration_seconds: 300
+    max_task_retries: 3

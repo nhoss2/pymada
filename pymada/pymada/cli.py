@@ -57,9 +57,7 @@ requires:
 @cli.command()
 @click.argument('num-agents', type=click.INT)
 @click.option('-p', '--provider', default='gc')
-@click.option('--preempt-agents/--no-preempt-agents', default=True)
-@click.option('--preempt-master/--no-preempt-master', default=True)
-def launch(num_agents, provider, preempt_agents=True, preempt_master=True, config_path=None):
+def launch(num_agents, provider, config_path=None):
 
     if type(num_agents) is not int:
         print('error: agents argument needs to be a number. given input:', num_agents)
@@ -75,7 +73,16 @@ def launch(num_agents, provider, preempt_agents=True, preempt_master=True, confi
         print('Error with provider name in pymada_settings.yaml. Needs to be one of: '
               + ', '.join(AVAILABLE_PROVIDERS))
         return
+
+    preempt_master = False
+    preempt_agents = False
     
+    if 'preempt_master' in pymada_settings['provision']['provider']:
+        preempt_master = pymada_settings['provision']['provider']['preempt_master']
+
+    if 'preempt_agents' in pymada_settings['provision']['provider']:
+        preempt_agents = pymada_settings['provision']['provider']['preempt_agents']
+
     provider.create_master(preemptible=preempt_master)
     provider.create_agent(num_agents, preemptible=preempt_agents)
     print('waiting for kubernetes installation on master')
