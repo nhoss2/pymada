@@ -138,8 +138,13 @@ class Control(object):
     def _send_request(self, req_url, json_data=None):
         try:
             r = requests.post(req_url, json=json_data, timeout=2)
-            json_response = r.json()
-            return (json_response, r.status_code)
+            if r.ok:
+                json_response = r.json()
+                return (json_response, r.status_code)
+            else:
+                logging.warning('error with agent HTTP response code: ' + str(r.status_code) +
+                                ' text: ' + r.text)
+                return (None, r.status_code)
         except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
             logging.warning('unable to contact ' + req_url)
             return (None, None)
