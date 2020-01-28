@@ -20,7 +20,7 @@ RUN npm install
 RUN npm install request@^2.88.0
 RUN npm install request-promise@^4.2.4
 
-COPY agent_server.py client.py wsgi.py Makefile pymada_client.js __init__.py ./
+COPY agent_server.py wsgi.py pymada_client.js __init__.py ./
 
 EXPOSE 5001
 ENV AGENT_PORT 5001

@@ -90,7 +90,7 @@ def get_results(master_url=None):
     response = request_master('/urls/', 'GET', master_url=master_url)
 
     if response.ok:
-        return response.text
+        return response.json()
     else:
         print(response.text)
 

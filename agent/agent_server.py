@@ -7,7 +7,14 @@ import logging
 from flask import Flask, json, request
 
 runner_configs = {
-    'python': {
+    'python_selenium_firefox': {
+        'executable': 'python3',
+        'dependency_manager': {
+            'file_name': 'requirements.txt',
+            'command': 'python3 -m pip install -r requirements.txt'
+        }
+    },
+    'python_selenium_chrome': {
         'executable': 'python3',
         'dependency_manager': {
             'file_name': 'requirements.txt',

@@ -9,41 +9,6 @@ from kubernetes.config import kube_config
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-'''
-def run_master_server(config_path=None, auth_token=None, num_retries=5):
-    if config_path is None:
-        cwd = os.getcwd()
-        config_path = os.path.join(cwd, 'k3s_config.yaml')
-
-    kube_config.load_kube_config(config_file=config_path)
-    kube_client = client.ApiClient()
-
-    try:
-        base_dir = os.path.dirname(os.path.realpath(__file__))
-
-        master_api_yaml_path = os.path.join(base_dir, 'kube_yaml', 'pymada_master.yaml')
-        master_yaml = setup_master_api_deployment(master_api_yaml_path, auth_token)
-        temp_path = os.path.join(base_dir, 'kube_yaml', 'temp_pymada_master.yaml')
-        with open(temp_path, 'w') as temp_file:
-            temp_file.write(master_yaml)
-        utils.create_from_yaml(kube_client, temp_path)
-
-        if len(get_service_status('service=pymada-master-service').items) == 0:
-            utils.create_from_yaml(kube_client, os.path.join(base_dir, 'kube_yaml', 'pymada_master_service.yaml'))
-
-        if len(get_service_status('service=pymada-master-nodeport').items) == 0:
-            utils.create_from_yaml(kube_client, os.path.join(base_dir, 'kube_yaml', 'pymada_master_nodeport.yaml'))
-    except (utils.FailToCreateError, client.rest.ApiException) as e:
-        if num_retries > 0:
-            time.sleep(5)
-            return run_master_server(config_path, auth_token=auth_token, num_retries=num_retries-1)
-        else:
-            raise e
-
-    if os.path.exists(temp_path):
-        os.remove(temp_path)
-'''
-
 def setup_master_api_deployment(yaml_path, auth_token=None, max_task_duration=None):
     with open(yaml_path) as deploy_file:
         deploy_yaml = yaml.load(deploy_file.read(), Loader=yaml.FullLoader)
@@ -60,14 +25,12 @@ def setup_master_api_deployment(yaml_path, auth_token=None, max_task_duration=No
             deploy_yaml['spec']['template']['spec']['containers'][0]['env'] = env_vars
 
         return yaml.dump(deploy_yaml)
-        
 
 
-def run_deployment(image, replicas, deploy_name,
-                    template_label, container_name, env_vars=[],
-                    container_ports=[], pod_node_selector=None,
-                    config_path=None):
+def run_deployment(pod_spec, replicas, deploy_name,
+                    template_label, config_path=None):
 
+    '''
     container = client.V1Container(
         name=container_name,
         image=image,
@@ -79,6 +42,7 @@ def run_deployment(image, replicas, deploy_name,
     else:
         pod_spec = client.V1PodSpec(containers=[container],
                                     node_selector=pod_node_selector)
+    '''
 
     template = client.V1PodTemplateSpec(
         metadata=client.V1ObjectMeta(labels=template_label),
@@ -107,28 +71,70 @@ def run_deployment(image, replicas, deploy_name,
     appsv1_client = client.AppsV1Api()
     appsv1_client.create_namespaced_deployment(body=deployment, namespace="default")
 
+def create_puppeteer_pod_spec(container_name, agent_container_ports, env_vars):
+    agent_image_name = 'pymada/node-puppeteer'
+    agent_container = client.V1Container(
+        name=container_name,
+        image=agent_image_name,
+        ports=agent_container_ports,
+        env=env_vars)
 
-def run_agent_deployment(image, replicas, deploy_name='pymada-agents-deployment',
+    pod_spec = client.V1PodSpec(containers=[agent_container])
+
+    return pod_spec
+
+def create_selenium_pod_spec(selenium_type, container_name, agent_container_ports, env_vars):
+    if selenium_type == 'firefox':
+        agent_image_name = 'pymada/selenium-firefox',
+    elif selenium_type == 'chrome':
+        agent_image_name = 'pymada/selenium-chrome'
+
+    selenium_ports = [client.V1ContainerPort(container_port=4444)] + agent_container_ports
+    selenium_container = client.V1Container(
+        name=container_name,
+        image=agent_image_name,
+        ports=selenium_ports,
+        env=env_vars,
+        volume_mounts=[client.V1VolumeMount(mount_path='/dev/shm', name='dshm')]
+    )
+
+    pod_spec = client.V1PodSpec(containers=[selenium_container],
+                                volumes=[client.V1Volume(name='dshm',
+                                    empty_dir=client.V1EmptyDirVolumeSource(medium='Memory'))])
+
+    return pod_spec
+
+def run_agent_deployment(agent_type, replicas, deploy_name='pymada-agents-deployment',
                              template_label={'app': 'pymada-agent'},
                              agent_port=5001, container_name='pymada-single-agent',
-                             config_path=None, auth_token=None):
+                             auth_token=None, config_path=None):
 
     env_vars = [client.V1EnvVar("MASTER_URL", "http://pymadamaster:8000"),
         client.V1EnvVar("AGENT_PORT", str(agent_port)),
         client.V1EnvVar("AGENT_ADDR", value_from=client.V1EnvVarSource(
         field_ref=client.V1ObjectFieldSelector(field_path="status.podIP")))]
-    
+
     if auth_token is not None:
         env_vars.append(client.V1EnvVar("PYMADA_TOKEN_AUTH", auth_token))
 
-    container_ports = [client.V1ContainerPort(container_port=agent_port)]
+    agent_container_ports = [client.V1ContainerPort(container_port=agent_port)]
 
+    if agent_type == 'node_puppeteer':
+        pod_spec = create_puppeteer_pod_spec(container_name, agent_container_ports,
+                                             env_vars)
 
-    run_deployment(image, replicas, deploy_name, template_label, 
-            container_name, env_vars=env_vars, container_ports=container_ports,
-            config_path=config_path)
+    elif agent_type == 'python_selenium_firefox':
+        pod_spec = create_selenium_pod_spec('firefox', container_name,
+                        agent_container_ports, env_vars)
+    
+    elif agent_type == 'python_selenium_chrome':
+        pod_spec = create_selenium_pod_spec('chrome', container_name,
+                        agent_container_ports, env_vars)
 
-def run_master_deployment(image, deploy_name='pymada-master-deployment',
+    run_deployment(pod_spec, replicas, deploy_name, template_label,
+                   config_path=config_path)
+
+def run_master_deployment(deploy_name='pymada-master-deployment',
                           template_label={'app': 'pymada-master'},
                           container_port=8000, container_name='pymada-master-container',
                           config_path=None, auth_token=None, max_task_duration=None,
@@ -147,11 +153,18 @@ def run_master_deployment(image, deploy_name='pymada-master-deployment',
 
     container_ports = [client.V1ContainerPort(container_port=container_port)]
 
-    pod_node_selector = {'pymada-role': 'master'}
+    container = client.V1Container(
+        name=container_name,
+        image='pymada/master',
+        ports=container_ports,
+        env=env_vars)
 
-    run_deployment(image, 1, deploy_name, template_label,
-            container_name, env_vars=env_vars, container_ports=container_ports,
-            pod_node_selector=pod_node_selector, config_path=config_path)
+    pod_node_selector = {'pymada-role': 'master'}
+    pod_spec = client.V1PodSpec(containers=[container],
+                                node_selector=pod_node_selector)
+
+    run_deployment(pod_spec, 1, deploy_name, template_label,
+                   config_path=config_path)
 
     base_dir = os.path.dirname(os.path.realpath(__file__))
 

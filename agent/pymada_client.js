@@ -9,8 +9,6 @@ if ('AGENT_PORT' in process.env){
 
 exports.getTask = async function(){
     const reqUrl = exports.host + '/get_task';
-    //let task_data = await fetch(reqUrl, {method: 'POST'});
-    //task_data = await task_data.json();
     let task_data = await rp({uri: reqUrl, method: 'POST', json: true});
 
     if (typeof(task_data['json_metadata']) == 'string'){

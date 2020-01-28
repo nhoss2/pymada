@@ -2,7 +2,7 @@ test:
 	python -m unittest
 
 build-docker:
-	docker build . -t nhoss2/pymada_agent
+	docker build . -t pymada/agent
 
 run-local-server:
 	AGENT_ADDR=127.0.0.1 MASTER_URL=http://localhost:8000 \

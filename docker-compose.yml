@@ -1,7 +1,7 @@
 version: '3'
 services:
   master:
-    image: "nhoss2/pymada-master"
+    image: "pymada/master"
     ports:
       - "30200:8000"
     command: python control.py
@@ -12,8 +12,7 @@ services:
       #PYMADA_TOKEN_AUTH: "testing"
   
   agent1:
-    image: "nhoss2/pymada-node-puppeteer"
-    command: 'gunicorn "wsgi:app" -b 0.0.0.0:5001'
+    image: "pymada/selenium-chrome"
     depends_on:
       - master
     ports:
@@ -25,9 +24,10 @@ services:
       PYTHONUNBUFFERED: 1
       LOG_LEVEL: "DEBUG"
       #PYMADA_TOKEN_AUTH: "testing"
-  
+    shm_size: "2gb"
+
 #  agent2:
-#    image: "nhoss2/pymada-node-puppeteer"
+#    image: "pymada/node-puppeteer"
 #    command: 'gunicorn "wsgi:app" -b 0.0.0.0:5001'
 #    depends_on:
 #      - master

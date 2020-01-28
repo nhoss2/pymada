@@ -15,7 +15,7 @@ from .master_client import (read_provision_settings, request_master, add_runner,
                             add_url, get_results, list_screenshots,
                             list_screenshots_by_task, download_screenshot,
                             get_url_tasks, list_agents)
-from .run import run_puppeteer, load_pymada_settings
+from .run import load_pymada_settings, run_agent
 
 
 AVAILABLE_PROVIDERS = ['aws', 'digital_ocean', 'google_cloud']
@@ -110,15 +110,44 @@ def terminate(config_path=None):
     provider = load_provider(provider_name, pymada_settings)
     provider.delete_all()
 
-@cli.group()
-def run():
-    pass
 '''
 requires: 
     - provision_data.json
     - k3s_config.yaml
     - pymada_settings.yaml
 '''
+@click.argument('agent-type')
+@click.argument('runner', type=click.Path(dir_okay=False, exists=True, readable=True))
+@click.argument('replicas', type=click.INT, default=1)
+@click.option('--dependency-file', type=click.Path(dir_okay=False, exists=True, readable=True), default=None)
+@click.option('--master-url', default=None)
+@click.option('--no-kube-deploy', default=False, flag_value=True)
+@click.option('--no-token-auth', default=False, flag_value=True)
+@click.option('--pymada-settings-path', default=None)
+@click.option('--kube-config-path', default=None)
+@click.option('--provision-data-path', default=None)
+@cli.command()
+def run(agent_type, runner, replicas=1, dependency_file=None, master_url=None,
+        no_kube_deploy=False, no_token_auth=False, pymada_settings_path=None,
+        kube_config_path=None, provision_data_path=None):
+
+    agent_types = ['puppeteer', 'selenium_firefox', 'selenium_chrome']
+
+    if agent_type not in agent_types:
+        print('error, runner type needs to be one of: ' + ', '.join(agent_types))
+        return
+
+    run_agent(agent_type, runner,
+              replicas=replicas, requirementsfile=dependency_file,
+              master_url=master_url, no_kube_deploy=no_kube_deploy,
+              no_token_auth=no_token_auth, pymada_settings_path=pymada_settings_path,
+              kube_config_path=kube_config_path, provision_settings_path=provision_data_path)
+
+'''
+requires:
+    - provision_data.json
+    - k3s_config.yaml
+    - pymada_settings.yaml
 @run.command()
 @click.argument('runner', type=click.Path(dir_okay=False, exists=True, readable=True))
 @click.argument('replicas', type=click.INT, default=1)
@@ -136,7 +165,7 @@ def puppeteer(runner, replicas=1, packagejson=None, master_url=None, no_kube_dep
     run_puppeteer(runner, replicas, packagejson, master_url, no_kube_deploy,
                  no_token_auth, pymada_settings_path, kube_config_path,
                  provision_data_path)
-
+'''
 '''
 requires:
     - provision_data.json
