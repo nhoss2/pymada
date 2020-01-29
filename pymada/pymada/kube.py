@@ -30,20 +30,6 @@ def setup_master_api_deployment(yaml_path, auth_token=None, max_task_duration=No
 def run_deployment(pod_spec, replicas, deploy_name,
                     template_label, config_path=None):
 
-    '''
-    container = client.V1Container(
-        name=container_name,
-        image=image,
-        ports=container_ports,
-        env=env_vars)
-    
-    if pod_node_selector is None:
-        pod_spec = client.V1PodSpec(containers=[container])
-    else:
-        pod_spec = client.V1PodSpec(containers=[container],
-                                    node_selector=pod_node_selector)
-    '''
-
     template = client.V1PodTemplateSpec(
         metadata=client.V1ObjectMeta(labels=template_label),
         spec=pod_spec)
@@ -253,5 +239,32 @@ def get_pod_list(config_path=None):
             'restart_count': pod.status.container_statuses[0].restart_count,
             'deletion_timestamp': pod.metadata.deletion_timestamp
         })
+
+    return output
+
+def get_node_list(config_path=None):
+    if config_path is None:
+        base_dir = os.getcwd()
+        config_path = os.path.join(base_dir, 'k3s_config.yaml')
+
+    kube_config.load_kube_config(config_file=config_path)
+    k_client = client.CoreV1Api()
+
+    output = []
+    node_data = k_client.list_node()
+    for node in node_data.items:
+
+        node_images = []
+        if node.status.images is not None:
+            for image in node.status.images:
+                if 'pymada' in image.names[1]:
+                    node_images.append(image.names[1])
+
+        output.append({
+            'name': node.metadata.name,
+            'images': node_images
+        })
+
+    #print(node_data)
 
     return output

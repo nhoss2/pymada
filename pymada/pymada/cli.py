@@ -10,7 +10,7 @@ from tabulate import tabulate
 from .provision import (ProvisionGoogleCloud, ProvisionDigitalOcean,
                         ProvisionAWS)
 from .kube import (get_deployment_status,
-                   delete_all_deployments, get_pod_list, get_pod_logs)
+                   delete_all_deployments, get_pod_list, get_pod_logs, get_node_list)
 from .master_client import (read_provision_settings, request_master, add_runner, 
                             add_url, get_results, list_screenshots,
                             list_screenshots_by_task, download_screenshot,
@@ -335,6 +335,32 @@ def delete_deployments(ctx):
         time.sleep(2)
 
     print('deleted')
+
+'''
+requires:
+    - k3s_config.yaml
+'''
+@kube.command()
+@click.pass_context
+def nodes(ctx):
+    kube_config = ctx.obj['kube_config']
+    if not os.path.exists(kube_config):
+        raise click.FileError(kube_config,
+        'File doesn\'t exist. "k3s_config.yaml" either needs to be in your ' +
+        'current working directory or you can specify a kube config file path with ' +
+        '--kube-config')
+
+    node_list = get_node_list()
+    table = []
+
+    header = ['node name', 'images']
+
+    for node in node_list:
+        row = [node['name'], '\n'.join(node['images'])]
+        table.append(row)
+
+    print(tabulate(table, headers=header))
+
 
 @cli.group()
 def info():
