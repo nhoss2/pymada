@@ -171,28 +171,54 @@ class Provision(object):
         
         self.save_settings()
 
-
-    def delete_all(self):
+    def delete_all_mp(self):
         if self.settings is None:
             self.settings = self.load_settings()
 
+        node_name_list = []
+
         if 'master_node_name' in self.settings:
-            node = get_node(self.driver, self.settings['master_node_name'])
-            print('terminating:', node.name)
-            self.driver.destroy_node(node)
+            node_name_list.append(self.settings['master_node_name'])
             del(self.settings['master_node_name'])
             del(self.settings['master_node_ip'])
-            
             self.save_settings()
 
         if 'agents' in self.settings:
-            for node_name in self.settings['agents']:
-                node = get_node(self.driver, node_name)
+            node_name_list += self.settings['agents']
+            self.settings['agents'] = []
+            self.save_settings()
+
+        with Pool(processes=50) as pool:
+            for node_name in node_name_list:
+                pool.apply_async(delete_node_mp, (
+                    self.driver_info, node_name))
+
+            pool.close()
+            pool.join()
+
+    '''
+        def delete_all(self):
+            if self.settings is None:
+                self.settings = self.load_settings()
+
+            if 'master_node_name' in self.settings:
+                node = get_node(self.driver, self.settings['master_node_name'])
                 print('terminating:', node.name)
                 self.driver.destroy_node(node)
+                del(self.settings['master_node_name'])
+                del(self.settings['master_node_ip'])
+                
+                self.save_settings()
 
-            del(self.settings['agents'])
-            self.save_settings()
+            if 'agents' in self.settings:
+                for node_name in self.settings['agents']:
+                    node = get_node(self.driver, node_name)
+                    print('terminating:', node.name)
+                    self.driver.destroy_node(node)
+
+                del(self.settings['agents'])
+                self.save_settings()
+    '''
 
     def save_settings(self, settings_file=None):
         if settings_file is None:
@@ -247,7 +273,8 @@ class ProvisionDigitalOcean(Provision):
         do_driver = get_driver(Provider.DIGITAL_OCEAN)
 
         driver_info = {
-            'token': token
+            'token': token,
+            'provider': 'digital_ocean'
         }
 
         driver = do_driver(driver_info['token'], api_version='v2')
@@ -271,7 +298,7 @@ class ProvisionDigitalOcean(Provision):
         create_node_digial_ocean_mp(self.driver_info, node_info)
 
     def create_node_mp(self, name_list, user_data=None, preemptible=False):
-        with Pool(processes=10) as pool:
+        with Pool(processes=50) as pool:
             for node_name in name_list:
                 node_info = {
                     'name': node_name,
@@ -296,7 +323,8 @@ class ProvisionGoogleCloud(Provision):
         driver_info = {
             'user': user,
             'auth': auth,
-            'project': project
+            'project': project,
+            'provider': 'google_cloud'
         }
 
         driver = gc_driver(user, auth, project=project)
@@ -322,7 +350,7 @@ class ProvisionGoogleCloud(Provision):
 
     def create_node_mp(self, name_list, user_data=None, preemptible=False):
         
-        with Pool(processes=10) as pool:
+        with Pool(processes=50) as pool:
             for node_name in name_list:
                 node_info = {
                     'name': node_name,
@@ -350,7 +378,8 @@ class ProvisionAWS(Provision):
         driver_info = {
             'access_id': access_id,
             'secret_key': secret_key,
-            'region': region
+            'region': region,
+            'provider': 'aws'
         }
 
         driver = aws_driver(access_id, secret_key, region=region)
@@ -375,7 +404,7 @@ class ProvisionAWS(Provision):
 
     def create_node_mp(self, name_list, user_data=None, preemptible=False):
 
-        with Pool(processes=10) as pool:
+        with Pool(processes=50) as pool:
             for node_name in name_list:
                 node_info = self.instance
                 node_info['name'] = node_name
@@ -443,7 +472,6 @@ def create_node_aws_mp(driver_info, node_info):
         print('creating:', node_info['name'])
         provider = get_driver(Provider.EC2)
 
-
         driver = provider(driver_info['access_id'],
                           driver_info['secret_key'],
                           region=driver_info['region'])
@@ -480,6 +508,37 @@ def create_node_aws_mp(driver_info, node_info):
             ex_keyname=node_info['keyname'],
             ex_userdata=node_info['ex_userdata']
         )
+    except Exception as e:
+        traceback.print_exc()
+
+        raise e
+
+def delete_node_mp(driver_info, node_name):
+    try:
+        if driver_info['provider'] == 'google_cloud':
+            provider = get_driver(Provider.GCE)
+            driver = provider(driver_info['user'], driver_info['auth'], project=driver_info['project'])
+        elif driver_info['provider'] == 'aws':
+            provider = get_driver(Provider.EC2)
+            driver = provider(driver_info['access_id'],
+                            driver_info['secret_key'],
+                            region=driver_info['region'])
+        elif driver_info['provider'] == 'digital_ocean':
+            provider = get_driver(Provider.DIGITAL_OCEAN)
+            driver = provider(driver_info['token'], api_version='v2')
+        else:
+            raise Exception('Error provider ' + driver_info['provider'] + ' not found')
+
+        node = None
+        try:
+            node = get_node(driver, node_name)
+        except KeyError:
+            pass
+
+        if node is not None:
+            print('terminating: ' + node_name)
+            driver.destroy_node(node)
+
     except Exception as e:
         traceback.print_exc()
 

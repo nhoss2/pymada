@@ -28,6 +28,7 @@ def cli():
 @click.argument('provider_name')
 @click.argument('directory', default='.', type=click.Path())
 def init(provider_name, directory='.'):
+    # TODO: add help text showing available providers
     if not os.path.exists(directory):
         os.mkdir(directory)
 
@@ -108,7 +109,7 @@ def terminate(config_path=None):
     pymada_settings = load_pymada_settings()
     provider_name = pymada_settings['provision']['provider']['name']
     provider = load_provider(provider_name, pymada_settings)
-    provider.delete_all()
+    provider.delete_all_mp()
 
 '''
 requires: 
@@ -305,7 +306,7 @@ requires:
 @click.pass_context
 def delete_deployments(ctx):
     '''
-    Delete the master api server deployment and all agent deployments
+    Delete the master and all agent deployments
     '''
     kube_config = ctx.obj['kube_config']
     if not os.path.exists(kube_config):
@@ -343,6 +344,9 @@ requires:
 @kube.command()
 @click.pass_context
 def nodes(ctx):
+    '''
+    List all nodes and pymada images on each node
+    '''
     kube_config = ctx.obj['kube_config']
     if not os.path.exists(kube_config):
         raise click.FileError(kube_config,
@@ -451,6 +455,8 @@ requires:
 @click.argument('min_id', required=False, type=click.INT)
 @click.argument('max_id', required=False, type=click.INT)
 def agents(min_id=None, max_id=None):
+    # TODO: add check for 'provision_data.json'
+
     if min_id != None and max_id is None or min_id is None and max_id != None:
         print('both min id and max id is required')
         return

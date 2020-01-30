@@ -81,7 +81,11 @@ def create_selenium_pod_spec(selenium_type, container_name, agent_container_port
         image=agent_image_name,
         ports=selenium_ports,
         env=env_vars,
-        volume_mounts=[client.V1VolumeMount(mount_path='/dev/shm', name='dshm')]
+        volume_mounts=[client.V1VolumeMount(mount_path='/dev/shm', name='dshm')],
+        resources=client.V1ResourceRequirements(limits={
+            'memory': '1000Mi',
+            'cpu': '0.7'
+        })
     )
 
     pod_spec = client.V1PodSpec(containers=[selenium_container],
@@ -257,14 +261,12 @@ def get_node_list(config_path=None):
         node_images = []
         if node.status.images is not None:
             for image in node.status.images:
-                if 'pymada' in image.names[1]:
+                if len(image.names) == 2 and 'pymada' in image.names[1]:
                     node_images.append(image.names[1])
 
         output.append({
             'name': node.metadata.name,
             'images': node_images
         })
-
-    #print(node_data)
 
     return output
