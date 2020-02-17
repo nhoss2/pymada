@@ -57,7 +57,8 @@ def run_deployment(pod_spec, replicas, deploy_name,
     appsv1_client = client.AppsV1Api()
     appsv1_client.create_namespaced_deployment(body=deployment, namespace="default")
 
-def create_puppeteer_pod_spec(container_name, agent_container_ports, env_vars):
+def create_puppeteer_pod_spec(container_name, agent_container_ports, env_vars,
+                              node_selector=None):
     agent_image_name = 'pymada/node-puppeteer'
     agent_container = client.V1Container(
         name=container_name,
@@ -65,11 +66,13 @@ def create_puppeteer_pod_spec(container_name, agent_container_ports, env_vars):
         ports=agent_container_ports,
         env=env_vars)
 
-    pod_spec = client.V1PodSpec(containers=[agent_container])
+    pod_spec = client.V1PodSpec(containers=[agent_container],
+                                node_selector=node_selector)
 
     return pod_spec
 
-def create_selenium_pod_spec(selenium_type, container_name, agent_container_ports, env_vars):
+def create_selenium_pod_spec(selenium_type, container_name, agent_container_ports, env_vars,
+                             node_selector=None):
     if selenium_type == 'firefox':
         agent_image_name = 'pymada/selenium-firefox',
     elif selenium_type == 'chrome':
@@ -84,11 +87,12 @@ def create_selenium_pod_spec(selenium_type, container_name, agent_container_port
         volume_mounts=[client.V1VolumeMount(mount_path='/dev/shm', name='dshm')],
         resources=client.V1ResourceRequirements(limits={
             'memory': '1000Mi',
-            'cpu': '0.7'
+            'cpu': '0.9'
         })
     )
 
     pod_spec = client.V1PodSpec(containers=[selenium_container],
+                                node_selector=node_selector,
                                 volumes=[client.V1Volume(name='dshm',
                                     empty_dir=client.V1EmptyDirVolumeSource(medium='Memory'))])
 
@@ -97,7 +101,8 @@ def create_selenium_pod_spec(selenium_type, container_name, agent_container_port
 def run_agent_deployment(agent_type, replicas, deploy_name='pymada-agents-deployment',
                              template_label={'app': 'pymada-agent'},
                              agent_port=5001, container_name='pymada-single-agent',
-                             auth_token=None, config_path=None):
+                             auth_token=None, no_agents_on_master_node=True,
+                             config_path=None):
 
     env_vars = [client.V1EnvVar("MASTER_URL", "http://pymadamaster:8000"),
         client.V1EnvVar("AGENT_PORT", str(agent_port)),
@@ -109,17 +114,21 @@ def run_agent_deployment(agent_type, replicas, deploy_name='pymada-agents-deploy
 
     agent_container_ports = [client.V1ContainerPort(container_port=agent_port)]
 
+    pod_node_selector = None
+    if no_agents_on_master_node:
+        pod_node_selector = {'pymada-role': 'agent'}
+
     if agent_type == 'node_puppeteer':
         pod_spec = create_puppeteer_pod_spec(container_name, agent_container_ports,
-                                             env_vars)
+                                             env_vars, pod_node_selector)
 
     elif agent_type == 'python_selenium_firefox':
         pod_spec = create_selenium_pod_spec('firefox', container_name,
-                        agent_container_ports, env_vars)
+                        agent_container_ports, env_vars, pod_node_selector)
     
     elif agent_type == 'python_selenium_chrome':
         pod_spec = create_selenium_pod_spec('chrome', container_name,
-                        agent_container_ports, env_vars)
+                        agent_container_ports, env_vars, pod_node_selector)
 
     run_deployment(pod_spec, replicas, deploy_name, template_label,
                    config_path=config_path)
@@ -235,12 +244,20 @@ def get_pod_list(config_path=None):
     output = []
     pod_info = k_client.list_namespaced_pod('default')
     for pod in pod_info.items:
+        pod_age = None
+        if pod.status.start_time is not None:
+            pod_age = datetime.datetime.now(tz=tzutc()) - pod.status.start_time
+        
+        restart_count = None
+        if pod.status.container_statuses is not None:
+            restart_count = pod.status.container_statuses[0].restart_count
+
         output.append({
             'name': pod.metadata.name,
             'node_name': pod.spec.node_name,
             'status': pod.status.phase,
-            'age': datetime.datetime.now(tz=tzutc()) - pod.status.start_time,
-            'restart_count': pod.status.container_statuses[0].restart_count,
+            'age': pod_age,
+            'restart_count': restart_count,
             'deletion_timestamp': pod.metadata.deletion_timestamp
         })
 

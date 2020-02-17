@@ -15,3 +15,4 @@ provision:
 pymada:
     max_task_duration_seconds: 300
     max_task_retries: 3
+    no_agents_on_master_node: true

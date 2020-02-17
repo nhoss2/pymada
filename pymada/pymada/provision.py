@@ -96,7 +96,9 @@ class CloudConfigGen(object):
         yaml_file = open(self.node_yaml).read()
 
         # note, if updating K3S version, need to update on bootstrap.py as well
-        k3s_command = 'INSTALL_K3S_VERSION=v1.0.1 K3S_CLUSTER_SECRET=' + self.token + ' K3S_URL="https://' + master_ip + ':6443" sh /k3s_install.sh\n'
+        k3s_command = 'INSTALL_K3S_VERSION=v1.0.1 K3S_CLUSTER_SECRET=' \
+            + self.token + ' K3S_URL="https://' + master_ip \
+            + ':6443" sh /k3s_install.sh --node-label=pymada-role=agent\n'
 
         return yaml_file + k3s_command
 
