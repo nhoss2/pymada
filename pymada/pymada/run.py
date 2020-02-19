@@ -86,13 +86,19 @@ def run_agent(agent_type, runner, replicas=1, requirementsfile=None, master_url=
         if 'no_agents_on_master_node' in pymada_settings['pymada']:
             no_agents_on_master_node = pymada_settings['pymada']['no_agents_on_master_node']
 
+        pod_limits = None
+        if 'agent_pod_limits' in pymada_settings['pymada']:
+            pod_limits = pymada_settings['pymada']['agent_pod_limits']
+
         if no_token_auth:
             kube.run_agent_deployment(agent_type, replicas, 
                 no_agents_on_master_node=no_agents_on_master_node,
+                pod_limits=pod_limits,
                 config_path=kube_config_path)
         else:
             provision_settings = master_client.read_provision_settings(provision_settings_path)
             kube.run_agent_deployment(agent_type, replicas,
                 auth_token=provision_settings['pymada_auth_token'],
                 no_agents_on_master_node=no_agents_on_master_node,
+                pod_limits=pod_limits,
                 config_path=kube_config_path)

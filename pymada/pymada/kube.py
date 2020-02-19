@@ -58,13 +58,20 @@ def run_deployment(pod_spec, replicas, deploy_name,
     appsv1_client.create_namespaced_deployment(body=deployment, namespace="default")
 
 def create_puppeteer_pod_spec(container_name, agent_container_ports, env_vars,
-                              node_selector=None):
+                              node_selector=None, pod_limits=None):
     agent_image_name = 'pymada/node-puppeteer'
+
+    pod_resource_requirements = None
+    if pod_limits is not None and type(pod_limits) == dict:
+        pod_resource_requirements = client.V1ResourceRequirements(limits=pod_limits)
+
     agent_container = client.V1Container(
         name=container_name,
         image=agent_image_name,
         ports=agent_container_ports,
-        env=env_vars)
+        env=env_vars,
+        resources=pod_resource_requirements
+    )
 
     pod_spec = client.V1PodSpec(containers=[agent_container],
                                 node_selector=node_selector)
@@ -72,11 +79,15 @@ def create_puppeteer_pod_spec(container_name, agent_container_ports, env_vars,
     return pod_spec
 
 def create_selenium_pod_spec(selenium_type, container_name, agent_container_ports, env_vars,
-                             node_selector=None):
+                             node_selector=None, pod_limits=None):
     if selenium_type == 'firefox':
         agent_image_name = 'pymada/selenium-firefox',
     elif selenium_type == 'chrome':
         agent_image_name = 'pymada/selenium-chrome'
+
+    pod_resource_requirements = None
+    if pod_limits is not None and type(pod_limits) == dict:
+        pod_resource_requirements = client.V1ResourceRequirements(limits=pod_limits)
 
     selenium_ports = [client.V1ContainerPort(container_port=4444)] + agent_container_ports
     selenium_container = client.V1Container(
@@ -85,10 +96,7 @@ def create_selenium_pod_spec(selenium_type, container_name, agent_container_port
         ports=selenium_ports,
         env=env_vars,
         volume_mounts=[client.V1VolumeMount(mount_path='/dev/shm', name='dshm')],
-        resources=client.V1ResourceRequirements(limits={
-            'memory': '1000Mi',
-            'cpu': '0.9'
-        })
+        resources=pod_resource_requirements
     )
 
     pod_spec = client.V1PodSpec(containers=[selenium_container],
@@ -102,7 +110,7 @@ def run_agent_deployment(agent_type, replicas, deploy_name='pymada-agents-deploy
                              template_label={'app': 'pymada-agent'},
                              agent_port=5001, container_name='pymada-single-agent',
                              auth_token=None, no_agents_on_master_node=True,
-                             config_path=None):
+                             pod_limits=None, config_path=None):
 
     env_vars = [client.V1EnvVar("MASTER_URL", "http://pymadamaster:8000"),
         client.V1EnvVar("AGENT_PORT", str(agent_port)),
@@ -120,15 +128,18 @@ def run_agent_deployment(agent_type, replicas, deploy_name='pymada-agents-deploy
 
     if agent_type == 'node_puppeteer':
         pod_spec = create_puppeteer_pod_spec(container_name, agent_container_ports,
-                                             env_vars, pod_node_selector)
+                                             env_vars, pod_node_selector,
+                                             pod_limits)
 
     elif agent_type == 'python_selenium_firefox':
         pod_spec = create_selenium_pod_spec('firefox', container_name,
-                        agent_container_ports, env_vars, pod_node_selector)
-    
+                        agent_container_ports, env_vars, pod_node_selector,
+                        pod_limits)
+
     elif agent_type == 'python_selenium_chrome':
         pod_spec = create_selenium_pod_spec('chrome', container_name,
-                        agent_container_ports, env_vars, pod_node_selector)
+                        agent_container_ports, env_vars, pod_node_selector,
+                        pod_limits)
 
     run_deployment(pod_spec, replicas, deploy_name, template_label,
                    config_path=config_path)
