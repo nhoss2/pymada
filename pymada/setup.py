@@ -1,12 +1,9 @@
 from setuptools import setup, find_packages
 
-with open('requirements.txt') as f:
-    requirements = f.read().splitlines()
-
 setup(
     name="pymada",
     version="0.1.0",
-    url="-",
+    url="https://github.com/nhoss2/pymada",
     license="",
 
     author="Nafis Hossain",
@@ -16,7 +13,20 @@ setup(
 
     packages=find_packages(),
 
-    install_requires=requirements,
+    install_requires=[
+        'apache-libcloud',
+        'django',
+        'djangorestframework',
+        'requests',
+        'gunicorn',
+        'flask',
+        'kubernetes',
+        'cryptography',
+        'click',
+        'pyyaml',
+        'tabulate',
+        'pillow'
+    ],
 
     entry_points={
         'console_scripts': ['pymada=pymada.cli:cli']

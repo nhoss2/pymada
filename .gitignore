@@ -4,3 +4,6 @@ __pycache__/
 .vscode
 test_project
 pymada/pymada.egg-info/
+pymada/build/
+pymada/dist/
+

@@ -6,6 +6,7 @@ verify_ssl = true
 [dev-packages]
 pylint = "*"
 autopep8 = "*"
+pylint-django = "*"
 
 [packages]
 apache-libcloud = "*"
@@ -13,16 +14,15 @@ django = "*"
 djangorestframework = "*"
 requests = "*"
 gunicorn = "*"
-pylint-django = "*"
 flask = "*"
 kubernetes = "*"
 cryptography = "*"
 click = "*"
-pymada = {editable = true,path = "./pymada"}
 pyyaml = "*"
 python-dateutil = "*"
 tabulate = "*"
 pillow = "*"
+pymada = {editable = true,path = "./pymada"}
 
 [requires]
 python_version = "3.6"
