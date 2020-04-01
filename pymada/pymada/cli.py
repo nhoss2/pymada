@@ -7,8 +7,7 @@ import requests
 import yaml
 from tabulate import tabulate
 
-from .provision import (ProvisionGoogleCloud, ProvisionDigitalOcean,
-                        ProvisionAWS)
+from .provision import (launch_all, terminate_all, AVAILABLE_PROVIDERS)
 from .kube import (get_deployment_status,
                    delete_all_deployments, get_pod_list, get_pod_logs, get_node_list)
 from .master_client import (read_provision_settings, request_master, add_runner, 
@@ -17,8 +16,6 @@ from .master_client import (read_provision_settings, request_master, add_runner,
                             get_url_tasks, list_agents)
 from .run import load_pymada_settings, run_agent
 
-
-AVAILABLE_PROVIDERS = ['aws', 'digital_ocean', 'google_cloud']
 
 @click.group()
 def cli():
@@ -57,67 +54,34 @@ requires:
 '''
 @cli.command()
 @click.argument('num-agents', type=click.INT)
-@click.option('-p', '--provider', default='gc')
-def launch(num_agents, provider, config_path=None):
-
+def launch(num_agents, config_path=None):
     if type(num_agents) is not int:
         print('error: agents argument needs to be a number. given input:', num_agents)
         return
-    
+
     try:
-        pymada_settings = load_pymada_settings()
-    except FileNotFoundError:
-        print('error: pymada_settings.yaml not found in current directory')
-        return
+        launch_all(num_agents)
+        print('done!')
+    except Exception as e:
+        print('error: ' + str(e))
 
-    provider_name = pymada_settings['provision']['provider']['name']
-
-    if provider_name in AVAILABLE_PROVIDERS:
-        provider = load_provider(provider_name, pymada_settings)
-    else:
-        print('Error with provider name in pymada_settings.yaml. Needs to be one of: '
-              + ', '.join(AVAILABLE_PROVIDERS))
-        return
-
-    preempt_master = False
-    preempt_agents = False
-    
-    if 'preempt_master' in pymada_settings['provision']['provider']:
-        preempt_master = pymada_settings['provision']['provider']['preempt_master']
-
-    if 'preempt_agents' in pymada_settings['provision']['provider']:
-        preempt_agents = pymada_settings['provision']['provider']['preempt_agents']
-
-    provider.create_master(preemptible=preempt_master)
-    provider.create_agent(num_agents, preemptible=preempt_agents)
-    print('waiting for kubernetes installation on master')
-    config = provider.get_k3s_config()
-
-    if config == "kube conf doesnt exist":
-        raise Exception("There has been an error with installing kubernetes")
-
-    if config_path is None:
-        config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
-    
-    provider.write_modify_k3s_config(config, write_path=config_path)
-
-    print('done!')
 
 '''
 requires: 
     - provision_data.json
     - cloud_api_auth.json
+    - pymada_settings.yaml
 '''
 @cli.command()
 def terminate(config_path=None):
     try:
-        pymada_settings = load_pymada_settings()
+        load_pymada_settings() # just to check if settings file is in cwd
     except FileNotFoundError:
         print('error: pymada_settings.yaml not found in current directory')
         return
-    provider_name = pymada_settings['provision']['provider']['name']
-    provider = load_provider(provider_name, pymada_settings)
-    provider.delete_all_mp()
+
+    terminate_all()
+
 
 '''
 requires: 
@@ -456,55 +420,6 @@ def agents(min_id=None, max_id=None):
         agents = list_agents()
     
     click.echo(json.dumps(agents, indent='  '))
-
-
-def load_provider(provider_name, pymada_settings):
-    if provider_name == 'aws':
-        image_owner = None
-        if 'image_owner' in pymada_settings['provision']['instance']:
-            image_owner = pymada_settings['provision']['instance']['image_owner']
-
-        keyname = None
-        if 'keyname' in pymada_settings['provision']['instance']:
-            keyname = pymada_settings['provision']['instance']['keyname']
-
-        return ProvisionAWS(
-            pymada_settings['provision']['provider']['access_id'],
-            pymada_settings['provision']['provider']['secret_key'],
-            pymada_settings['provision']['provider']['region'],
-            pymada_settings['provision']['instance']['size'],
-            pymada_settings['provision']['instance']['image'],
-            pymada_settings['provision']['instance']['location'],
-            pymada_settings['provision']['instance']['subnet'],
-            keyname,
-            image_owner
-        )
-
-    elif provider_name == 'google_cloud':
-        node_location = None
-        if 'location' in pymada_settings['provision']['instance']:
-            node_location = pymada_settings['provision']['instance']['location']
-
-        return ProvisionGoogleCloud(
-            pymada_settings['provision']['provider']['user'],
-            pymada_settings['provision']['provider']['auth_file'],
-            pymada_settings['provision']['provider']['project'],
-            pymada_settings['provision']['instance']['size'],
-            pymada_settings['provision']['instance']['image'],
-            node_location
-        )
-
-    elif provider_name == 'digital_ocean':
-        node_location = None
-        if 'location' in pymada_settings['provision']['instance']:
-            node_location = pymada_settings['provision']['instance']['location']
-
-        return ProvisionDigitalOcean(
-            pymada_settings['provision']['provider']['token'],
-            pymada_settings['provision']['instance']['size'],
-            pymada_settings['provision']['instance']['image'],
-            node_location
-        )
 
 
 if __name__ == '__main__':

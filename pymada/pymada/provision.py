@@ -13,6 +13,9 @@ from libcloud.compute.providers import get_driver
 from libcloud.compute.base import NodeAuthSSHKey
 from libcloud.compute.deployment import ScriptDeployment, SSHKeyDeployment
 
+from .run import load_pymada_settings
+
+AVAILABLE_PROVIDERS = ['aws', 'digital_ocean', 'google_cloud']
 
 def get_size(driver, name):
     for size in driver.list_sizes():
@@ -545,3 +548,93 @@ def delete_node_mp(driver_info, node_name):
         traceback.print_exc()
 
         raise e
+
+
+def launch_all(num_agents, pymada_settings_path=None, output_kube_path=None):
+    pymada_settings = load_pymada_settings(pymada_settings_path)
+
+    provider_name = pymada_settings['provision']['provider']['name']
+
+    if provider_name in AVAILABLE_PROVIDERS:
+        provider = load_provider(provider_name, pymada_settings)
+    else:
+        raise Exception('Error with provider name in pymada_settings.yaml. Needs to be one of: '
+              + ', '.join(AVAILABLE_PROVIDERS))
+
+    preempt_master = False
+    preempt_agents = False
+    
+    if 'preempt_master' in pymada_settings['provision']['provider']:
+        preempt_master = pymada_settings['provision']['provider']['preempt_master']
+
+    if 'preempt_agents' in pymada_settings['provision']['provider']:
+        preempt_agents = pymada_settings['provision']['provider']['preempt_agents']
+
+    provider.create_master(preemptible=preempt_master)
+    provider.create_agent(num_agents, preemptible=preempt_agents)
+    print('waiting for kubernetes installation on master')
+    config = provider.get_k3s_config()
+
+    if config == "kube conf doesnt exist":
+        raise Exception("There has been an error with installing kubernetes")
+
+    if output_kube_path is None:
+        output_kube_path = os.path.join(os.getcwd(), 'k3s_config.yaml')
+    
+    provider.write_modify_k3s_config(config, write_path=output_kube_path)
+
+
+def terminate_all(pymada_settings_path=None):
+    pymada_settings = load_pymada_settings(pymada_settings_path)
+    provider_name = pymada_settings['provision']['provider']['name']
+    provider = load_provider(provider_name, pymada_settings)
+    provider.delete_all_mp()
+
+
+def load_provider(provider_name, pymada_settings):
+    if provider_name == 'aws':
+        image_owner = None
+        if 'image_owner' in pymada_settings['provision']['instance']:
+            image_owner = pymada_settings['provision']['instance']['image_owner']
+
+        keyname = None
+        if 'keyname' in pymada_settings['provision']['instance']:
+            keyname = pymada_settings['provision']['instance']['keyname']
+
+        return ProvisionAWS(
+            pymada_settings['provision']['provider']['access_id'],
+            pymada_settings['provision']['provider']['secret_key'],
+            pymada_settings['provision']['provider']['region'],
+            pymada_settings['provision']['instance']['size'],
+            pymada_settings['provision']['instance']['image'],
+            pymada_settings['provision']['instance']['location'],
+            pymada_settings['provision']['instance']['subnet'],
+            keyname,
+            image_owner
+        )
+
+    elif provider_name == 'google_cloud':
+        node_location = None
+        if 'location' in pymada_settings['provision']['instance']:
+            node_location = pymada_settings['provision']['instance']['location']
+
+        return ProvisionGoogleCloud(
+            pymada_settings['provision']['provider']['user'],
+            pymada_settings['provision']['provider']['auth_file'],
+            pymada_settings['provision']['provider']['project'],
+            pymada_settings['provision']['instance']['size'],
+            pymada_settings['provision']['instance']['image'],
+            node_location
+        )
+
+    elif provider_name == 'digital_ocean':
+        node_location = None
+        if 'location' in pymada_settings['provision']['instance']:
+            node_location = pymada_settings['provision']['instance']['location']
+
+        return ProvisionDigitalOcean(
+            pymada_settings['provision']['provider']['token'],
+            pymada_settings['provision']['instance']['size'],
+            pymada_settings['provision']['instance']['image'],
+            node_location
+        )
