@@ -186,7 +186,7 @@ class Agent(object):
         
         print('new url data', new_url_task)
 
-        r = self._request_master(req_url, 'POST', json_data=new_url_task)
+        r = self._request_master(req_url, 'POST', json_data=[new_url_task])
 
         if not r.ok:
             err_msg = r.json()

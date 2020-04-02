@@ -74,10 +74,10 @@ def add_url(url, json_metadata=None, master_url=None):
     if type(json_metadata) is dict:
         json_metadata = json.dumps(json_metadata)
 
-    new_url_data = {
+    new_url_data = [{
         'url': url,
         'json_metadata': json_metadata
-    }
+    }]
 
     response = request_master('/urls/', 'POST', new_url_data, master_url=master_url)
 
@@ -85,6 +85,18 @@ def add_url(url, json_metadata=None, master_url=None):
         print('url added')
     else:
         print(response.text)
+
+'''
+url_list needs to be a list with format [{url: String, json_metadata: String}]
+'''
+def add_multiple_urls(url_list, master_url=None):
+    response = request_master('/urls/', 'POST', url_list, master_url=master_url)
+
+    if response.ok:
+        print('urls added')
+    else:
+        print(response.text)
+
 
 def get_results(master_url=None):
     response = request_master('/urls/', 'GET', master_url=master_url)

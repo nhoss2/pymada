@@ -54,8 +54,7 @@ class UrlList(EnvTokenAPIView):
         return Response(serializer.data)
 
     def post(self, request, format=None):
-        print(request.data)
-        serializer = UrlTaskSerializer(data=request.data)
+        serializer = UrlTaskSerializer(data=request.data, many=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -72,12 +71,14 @@ class UrlSingle(EnvTokenAPIView):
     
     def put(self, request, pk, format=None):
         task = self.get_task(pk)
+
         agent = task.assigned_agent
 
         serializer = UrlTaskSerializer(task, data=request.data)
         if serializer.is_valid():
-            agent.assigned_task = None
-            agent.save()
+            if agent is not None:
+                agent.assigned_task = None
+                agent.save()
             serializer.save(task_state='COMPLETE', end_time=time.time(), assigned_agent=None)
             return Response(serializer.data, status=status.HTTP_200_OK)
 

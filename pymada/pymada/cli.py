@@ -396,7 +396,8 @@ def tasks(min_id=None, max_id=None):
     if min_id != None and max_id != None:
         url_tasks = get_url_tasks(min_id=min_id, max_id=max_id)
     else:
-        url_tasks = get_url_tasks()
+        print('showing first 20 url tasks')
+        url_tasks = get_url_tasks(min_id=0, max_id=20)
     
     click.echo(json.dumps(url_tasks, indent='  '))
 

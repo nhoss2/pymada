@@ -85,12 +85,22 @@ class MasterServerTestCase(TestCase):
 
     def test_add_url(self):
         c = APIClient()
-        res = c.post('/urls/', {
+        res = c.post('/urls/', [{
             'url': 'http://test'
-        })
+        }], format='json')
 
         assert res.status_code == 201
-        assert 'id' in res.json()
+        assert 'id' in res.json()[0]
+
+    def test_add_multiple_urls(self):
+        c = APIClient()
+        res = c.post('/urls/', [
+                {'url': 'http://test1,'}, {'url': 'http://test2'},
+                {'url': 'http://test3', 'json_metadata': '{"some":"data"}'}
+            ], format='json')
+        
+        assert res.status_code == 201
+        assert len(res.json()) == 3
 
     def test_get_results(self):
         c = APIClient()
