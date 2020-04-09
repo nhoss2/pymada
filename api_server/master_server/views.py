@@ -54,6 +54,7 @@ class UrlList(EnvTokenAPIView):
         return Response(serializer.data)
 
     def post(self, request, format=None):
+        print('post to urls called')
         serializer = UrlTaskSerializer(data=request.data, many=True)
         if serializer.is_valid():
             serializer.save()
@@ -234,6 +235,7 @@ class GetStats(EnvTokenAPIView):
         urls_queued = len(UrlTask.objects.filter(task_state='QUEUED'))
         urls_assigned = len(UrlTask.objects.filter(task_state='ASSIGNED'))
         urls_complete = len(UrlTask.objects.filter(task_state='COMPLETE'))
+        urls_failed_once = len(UrlTask.objects.filter(fail_num__gte=1))
         registered_agents = len(Agent.objects.all())
 
         errs = len(ErrorLog.objects.all())
@@ -242,6 +244,7 @@ class GetStats(EnvTokenAPIView):
             'urls_queued': urls_queued,
             'urls_assigned': urls_assigned,
             'urls_complete': urls_complete,
+            'urls_failed_min_once': urls_failed_once,
             'errors_logged': errs,
             'registered_agents': registered_agents,
         })

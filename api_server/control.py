@@ -121,8 +121,8 @@ class Control(object):
         if assigned_task.task_state != 'ASSIGNED':
             return
 
-        logging.warning('task {} ({}) was assigned but no results were returned'.format(
-            assigned_task.id, assigned_task.url))
+        logging.info('task {} was assigned to agent {} but no results were returned'.format(
+            assigned_task.pk, agent.pk))
 
         assigned_task.fail_num += 1
         assigned_task.start_time = 0
@@ -133,7 +133,9 @@ class Control(object):
             assigned_task.task_state = 'QUEUED'
 
         assigned_task.assigned_agent = None
+        agent.assigned_task = None
         assigned_task.save()
+        agent.save()
 
     def _send_request(self, req_url, json_data=None):
         try:
@@ -179,7 +181,8 @@ def run():
     if len(User.objects.filter(username='pymadauser')) == 0:
         User.objects.create_user('pymadauser',None,None)
     
-    command = ["gunicorn", "--bind", "0.0.0.0:8000", "api_server.wsgi"]
+    #command = ["gunicorn", "--bind", "0.0.0.0:8000", "api_server.wsgi"]
+    command = ["uvicorn", "--host", "0.0.0.0", "--port", "8000", "api_server.asgi:application"]
     file_dir = os.path.dirname(os.path.realpath(__file__))
     subprocess.Popen(command, cwd=file_dir)
 

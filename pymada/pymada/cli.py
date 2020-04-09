@@ -151,7 +151,8 @@ def stats(master_url=None):
     stats = stats.json()
     print('URL Tasks: ' + str(stats['urls']) + ' (queued: ' + str(stats['urls_queued'])
             + ', assigned: ' + str(stats['urls_assigned']) + ', complete: '
-            + str(stats['urls_complete']) + ')')
+            + str(stats['urls_complete']) + ', failed at least once: '
+            + str(stats['urls_failed_min_once']) + ')')
     print('Agents: ' + str(stats['registered_agents']))
     print('Errors Logged: ' + str(stats['errors_logged']))
 

@@ -2,6 +2,7 @@ import os
 import json
 import time
 import requests
+import math
 
 def read_provision_settings(settings_path=None):
     if settings_path is None:
@@ -90,7 +91,12 @@ def add_url(url, json_metadata=None, master_url=None):
 url_list needs to be a list with format [{url: String, json_metadata: String}]
 '''
 def add_multiple_urls(url_list, master_url=None):
-    response = request_master('/urls/', 'POST', url_list, master_url=master_url)
+    num_urls = len(url_list)
+    print('adding', num_urls,'urls')
+    for i in range(math.ceil(num_urls/100)):
+        print('adding urls from',i*100,i*100+100)
+
+        response = request_master('/urls/', 'POST', url_list[i*100:i*100+100], master_url=master_url)
 
     if response.ok:
         print('urls added')
