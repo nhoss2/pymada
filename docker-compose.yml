@@ -12,7 +12,7 @@ services:
       #PYMADA_TOKEN_AUTH: "testing"
   
   agent1:
-    image: "pymada/selenium-chrome"
+    image: "pymada/node-puppeteer"
     depends_on:
       - master
     ports:

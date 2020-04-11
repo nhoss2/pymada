@@ -54,7 +54,6 @@ class UrlList(EnvTokenAPIView):
         return Response(serializer.data)
 
     def post(self, request, format=None):
-        print('post to urls called')
         serializer = UrlTaskSerializer(data=request.data, many=True)
         if serializer.is_valid():
             serializer.save()

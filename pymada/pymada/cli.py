@@ -369,6 +369,10 @@ def get_screenshot(screenshot_id, output_dir=None):
         click.echo('error getting screenshot data')
         return
     
+    if len(screenshot_info) == 0:
+        click.echo('error no screenshot with id: ' + str(screenshot_id) + ' found')
+        return
+
     screenshot_name = screenshot_info[0]['screenshot']
 
     screenshot = download_screenshot(screenshot_id)

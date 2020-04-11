@@ -10,7 +10,7 @@ from master_server.models import UrlTask, Agent
 from master_server.serializers import UrlTaskSerializer
 from django.contrib.auth.models import User
 
-class Control(object):
+class Control:
 
     def __init__(self, max_task_duration_seconds=60*5, max_task_retries=3):
         self.max_duration_seconds = max_task_duration_seconds
@@ -19,15 +19,6 @@ class Control(object):
     # TODO: find better way of being notified of state changes instead of polling
     def loop(self):
 
-        # assign queued tasks to idle agents if any exist
-        try:
-            idle_agent = Agent.objects.filter(agent_state='IDLE')[0]
-            queued_task = UrlTask.objects.filter(
-                task_state='QUEUED').order_by('fail_num')[0]
-            self.assign_task(queued_task, idle_agent)
-        except IndexError:
-            pass
-        
         # check last contact with agents and their task duration
         try:
             last_min = time.time() - 5
@@ -39,41 +30,37 @@ class Control(object):
         except IndexError:
             pass
 
-
         time.sleep(0.05)
     
     def run(self):
         while True:
             self.loop()
 
-    def assign_task(self, task, agent):
-        logging.info('assigning ' + str(task.id) + ' to agent ' 
-            + str(agent.id))
+    def assign_task(self, agent):
 
-        task.assigned_agent = agent
-        task.task_state = 'ASSIGNED'
-        task.start_time = time.time()
-        task.save()
-        agent.agent_state = 'ASSIGNED'
-        agent.assigned_task = task
-        agent.save()
+        try:
+            task = UrlTask.objects.filter(
+                task_state='QUEUED').order_by('fail_num')[0]
+        except IndexError:
+            return
+
+        logging.info('assigning ' + str(task.id) + ' to agent '
+            + str(agent.id))
 
         response, code = self._send_request(
             agent.agent_url + '/start_run',
             json_data=UrlTaskSerializer(task).data)
 
-        if code != 200 and type(response) is dict:
-            logging.error('error from assigning task ' + str(response))
-            task.task_state = 'QUEUED'
-            task.save()
-            agent.agent_state = 'LOST'
-            agent.save()
-        if code is None:
-            agent.agent_state = 'LOST'
-            agent.save()
-
         agent.last_contact_attempt = time.time()
         agent.save()
+
+        if code != 200 or code is None:
+            logging.error('error from assigning task ' + str(response))
+            agent.agent_state = 'LOST'
+            agent.save()
+            return
+
+        update_agent_task(agent, task)
     
     def check_status(self, agent):
         logging.debug('checking status of ' + str(agent.id))
@@ -98,6 +85,7 @@ class Control(object):
 
                 if response_status == 'IDLE':
                     self.check_for_failed_task(agent)
+                    self.assign_task(agent)
             
         agent.last_contact_attempt = time.time()
         agent.save()
@@ -158,6 +146,16 @@ class Control(object):
         if type(response) is dict:
             if 'error' in response:
                 logging.error(response['error'])
+
+def update_agent_task(agent, task):
+    task.assigned_agent = agent
+    task.task_state = 'ASSIGNED'
+    task.start_time = time.time()
+    task.save()
+
+    agent.agent_state = 'ASSIGNED'
+    agent.assigned_task = task
+    agent.save()
 
 
 def run():

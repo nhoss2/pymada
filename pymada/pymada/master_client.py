@@ -92,7 +92,7 @@ url_list needs to be a list with format [{url: String, json_metadata: String}]
 '''
 def add_multiple_urls(url_list, master_url=None):
     num_urls = len(url_list)
-    print('adding', num_urls,'urls')
+    print('adding', num_urls, 'urls')
     for i in range(math.ceil(num_urls/100)):
         print('adding urls from',i*100,i*100+100)
 
