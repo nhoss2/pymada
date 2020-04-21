@@ -24,6 +24,9 @@ tabulate = "*"
 pillow = "*"
 pymada = {editable = true,path = "./pymada"}
 uvicorn = "*"
+aiohttp = "*"
+cchardet = "*"
+aiodns = "*"
 
 [requires]
 python_version = "3.6"

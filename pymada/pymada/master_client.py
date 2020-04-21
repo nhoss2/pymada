@@ -94,9 +94,10 @@ def add_multiple_urls(url_list, master_url=None):
     num_urls = len(url_list)
     print('adding', num_urls, 'urls')
     for i in range(math.ceil(num_urls/100)):
-        print('adding urls from',i*100,i*100+100)
+        to_upload = url_list[i*100:i*100+100]
+        print('adding urls from',i*100,i*100 + len(to_upload))
 
-        response = request_master('/urls/', 'POST', url_list[i*100:i*100+100], master_url=master_url)
+        response = request_master('/urls/', 'POST', to_upload, master_url=master_url)
 
     if response.ok:
         print('urls added')
