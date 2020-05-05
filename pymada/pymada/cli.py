@@ -107,7 +107,8 @@ def run(agent_type, runner, replicas=1, dependency_file=None, master_url=None,
     agent_types = {
         'puppeteer': 'node_puppeteer',
         'selenium_firefox': 'python_selenium_firefox',
-        'selenium_chrome': 'python_selenium_chrome'
+        'selenium_chrome': 'python_selenium_chrome',
+        'python': 'python_agent'
     }
 
     if agent_type not in agent_types:

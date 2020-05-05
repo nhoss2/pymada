@@ -61,7 +61,7 @@ def run_agent(agent_type, runner, replicas=1, requirementsfile=None, master_url=
               kube_config_path=None, provision_settings_path=None):
 
     '''
-    current agent types: "node_puppeteer", "python_selenium_firefox", "python_selenium_chrome"
+    current agent types: "node_puppeteer", "python_selenium_firefox", "python_selenium_chrome", "python_agent"
     '''
     if kube_config_path is None:
         kube_config_path = os.path.join(os.getcwd(), 'k3s_config.yaml')

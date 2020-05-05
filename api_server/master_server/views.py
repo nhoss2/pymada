@@ -201,10 +201,7 @@ class Screenshots(EnvTokenAPIView):
 
 class TaskScreenshots(EnvTokenAPIView):
     def get(self, request, task_id, format=None):
-        print('task id', task_id)
         result = Screenshot.objects.filter(task=task_id)
-
-        print('result', result)
 
         if len(result) == 0:
             raise Http404

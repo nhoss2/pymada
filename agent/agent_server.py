@@ -27,6 +27,13 @@ runner_configs = {
             'file_name': 'package.json',
             'command': 'npm install'
         }
+    },
+    'python_agent': {
+        'executable': 'python',
+        'dependency_manager': {
+            'file_name': 'requirements.txt',
+            'command': 'python3 -m pip install -r requirements.txt'
+        }
     }
 }
 
@@ -351,7 +358,6 @@ def gen_flask_app():
     def save_screenshot():
         screenshot = request.files['screenshot']
         response = agent.save_screenshot(screenshot.read(), screenshot.filename)
-        print('res', response)
         return json.jsonify(response)
 
     @flask_app.route('/assign_runner', methods=['POST'])

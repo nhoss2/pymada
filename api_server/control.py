@@ -277,7 +277,6 @@ def run():
     if len(User.objects.filter(username='pymadauser')) == 0:
         User.objects.create_user('pymadauser',None,None)
     
-    #command = ["gunicorn", "--bind", "0.0.0.0:8000", "api_server.wsgi"]
     command = ["uvicorn", "--host", "0.0.0.0", "--port", "8000", "api_server.asgi:application"]
     file_dir = os.path.dirname(os.path.realpath(__file__))
     subprocess.Popen(command, cwd=file_dir)

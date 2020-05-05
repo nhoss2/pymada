@@ -57,9 +57,8 @@ def run_deployment(pod_spec, replicas, deploy_name,
     appsv1_client = client.AppsV1Api()
     appsv1_client.create_namespaced_deployment(body=deployment, namespace="default")
 
-def create_puppeteer_pod_spec(container_name, agent_container_ports, env_vars,
+def create_general_pod_spec(pod_image_url, container_name, agent_container_ports, env_vars,
                               node_selector=None, pod_limits=None):
-    agent_image_name = 'pymada/node-puppeteer'
 
     pod_resource_requirements = None
     if pod_limits is not None and type(pod_limits) == dict:
@@ -67,7 +66,7 @@ def create_puppeteer_pod_spec(container_name, agent_container_ports, env_vars,
 
     agent_container = client.V1Container(
         name=container_name,
-        image=agent_image_name,
+        image=pod_image_url,
         ports=agent_container_ports,
         env=env_vars,
         resources=pod_resource_requirements
@@ -127,7 +126,9 @@ def run_agent_deployment(agent_type, replicas, deploy_name='pymada-agents-deploy
         pod_node_selector = {'pymada-role': 'agent'}
 
     if agent_type == 'node_puppeteer':
-        pod_spec = create_puppeteer_pod_spec(container_name, agent_container_ports,
+        agent_image_name = 'pymada/node-puppeteer'
+        pod_spec = create_general_pod_spec(agent_image_name, container_name,
+                                             agent_container_ports,
                                              env_vars, pod_node_selector,
                                              pod_limits)
 
@@ -140,6 +141,13 @@ def run_agent_deployment(agent_type, replicas, deploy_name='pymada-agents-deploy
         pod_spec = create_selenium_pod_spec('chrome', container_name,
                         agent_container_ports, env_vars, pod_node_selector,
                         pod_limits)
+
+    elif agent_type == 'python_agent':
+        agent_image_name = 'pymada/python-agent'
+        pod_spec = create_general_pod_spec(agent_image_name, container_name,
+                                             agent_container_ports,
+                                             env_vars, pod_node_selector,
+                                             pod_limits)
 
     run_deployment(pod_spec, replicas, deploy_name, template_label,
                    config_path=config_path)

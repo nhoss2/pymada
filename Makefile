@@ -13,6 +13,9 @@ selenium-firefox:
 selenium-chrome:
 	cd agent/images; docker build -f selenium-chrome.dockerfile .. -t pymada/selenium-chrome
 
+python-agent:
+	cd agent/images; docker build -f python-agent.dockerfile .. -t pymada/python-agent
+
 all: master node-puppeteer selenium-firefox selenium-chrome
 
 
@@ -21,6 +24,7 @@ push-images:
 	docker push pymada/node-puppeteer
 	docker push pymada/selenium-firefox
 	docker push pymada/selenium-chrome
+	docker push pymada/python-agent
 
 run-master:
 	docker run -ti -p 8000:8000 pymada/master
