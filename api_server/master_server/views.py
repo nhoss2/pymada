@@ -165,7 +165,7 @@ class RunnerSingle(EnvTokenAPIView):
 
         serializer = RunnerSerializer(runner)
         return Response(serializer.data)
-    
+
 
 class ErrorLogs(EnvTokenAPIView):
     def get(self, request, format=None):

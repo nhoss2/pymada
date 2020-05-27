@@ -167,6 +167,7 @@ class ControlTestCast(TestCase):
             task.save()
 
 
+    '''
     @patch('control.requests.post')
     def test_control_single_loop(self, mock_post):
         for agent in Agent.objects.all():
@@ -189,3 +190,4 @@ class ControlTestCast(TestCase):
 
         for task in UrlTask.objects.all()[1:]:
             assert task.task_state == 'QUEUED'
+    '''

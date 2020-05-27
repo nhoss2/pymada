@@ -32,5 +32,9 @@ run-master:
 run-master-testing: build-master
 	docker run -ti -p 8000:8000 pymada/master make run-debug-gunicorn
 
+test:
+	cd api_server; python manage.py test
+	cd agent; python -m unittest
+
 
 .PHONY: compose-up master run-master run-master-testing agent all node-puppeteer selenium-firefox selenium-chrome push-images

@@ -272,7 +272,7 @@ class Runner(object):
         RUNNING = 'RUNNING'
         IDLE = 'IDLE'
 
-    def __init__(self, file_path, file_type='python', custom_executable=None):
+    def __init__(self, file_path, file_type, custom_executable=None):
         if custom_executable is not None:
             self.executable = custom_executable
         else:
@@ -375,7 +375,12 @@ def gen_flask_app():
 
     @flask_app.route('/kill_run', methods=['POST'])
     def kill_runner():
-        return json.jsonify(agent.kill_runner())
+        kill_response = agent.kill_runner()
+
+        if 'error' in kill_response:
+            return json.jsonify(kill_response), 500
+        else:
+            return json.jsonify(kill_response)
 
     @flask_app.route('/check_runner', methods=['POST'])
     def check_runner():
@@ -397,7 +402,7 @@ def gen_flask_app():
         if 'message' in err_info:
             return json.jsonify(agent.log_error(err_info['message']))
         
-        return json.jsonify({'error': 'request needs to have a "message" attribute'})
+        return json.jsonify({'error': 'request needs to have a "message" attribute'}), 500
 
     return flask_app
 
