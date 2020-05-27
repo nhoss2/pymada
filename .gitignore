@@ -1,6 +1,7 @@
 __pycache__/
 *.sqlite3
 *.swp
+*.pyc
 .vscode
 test_project
 pymada/pymada.egg-info/

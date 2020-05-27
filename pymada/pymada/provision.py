@@ -76,6 +76,10 @@ class CloudConfigGen(object):
 
         self.bootstrap_token = self.gen_token(30)
 
+        k3s_version_file = os.path.join(self.file_dir, 'k3s_version.txt')
+        with open(k3s_version_file) as k3sfile:
+            self.k3s_version = k3sfile.read()
+
     def gen_token(self, token_length):
         chars = string.ascii_letters + string.digits
         return ''.join(secrets.choice(chars) for i in range(token_length))
@@ -88,7 +92,8 @@ class CloudConfigGen(object):
         with open(self.bootstrap_server) as bootstrap_script:
             k3s_command += '      ' + 'route = "' + self.bootstrap_token + '"\n'
             k3s_command += '      ' + 'k3s_token = "' + self.token + '"\n'
-            for line in bootstrap_script.read().split('\n')[2:]:
+            k3s_command += '      ' + 'k3s_version = "' + self.k3s_version + '"\n'
+            for line in bootstrap_script.read().split('\n')[3:]:
                 k3s_command += '      ' + line + '\n'
         
         k3s_command += '\n    path: /bootstrap.py'
@@ -98,8 +103,7 @@ class CloudConfigGen(object):
     def gen_node(self, master_ip):
         yaml_file = open(self.node_yaml).read()
 
-        # note, if updating K3S version, need to update on bootstrap.py as well
-        k3s_command = 'INSTALL_K3S_VERSION=v1.0.1 K3S_CLUSTER_SECRET=' \
+        k3s_command = 'INSTALL_K3S_VERSION=' + self.k3s_version + ' K3S_CLUSTER_SECRET=' \
             + self.token + ' K3S_URL="https://' + master_ip \
             + ':6443" sh /k3s_install.sh --node-label=pymada-role=agent\n'
 
